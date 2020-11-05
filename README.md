@@ -1,4 +1,4 @@
-Go review matcher
+# Go review matcher
 
 ## Requirements
 Python 3.6
