@@ -7,7 +7,7 @@ import numpy as np
 random.seed(42)
 
 dir = 'data_splits_final'
-splits = ['val', 'test']
+splits = ['train', 'val', 'test']
 neg_samples = 9
 
 for split in splits:
