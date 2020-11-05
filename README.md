@@ -1,11 +1,15 @@
 # Go review matcher
 
 ## Requirements
-Python 3.6
-sgfmill
-tqdm
-mosesdecoder (put in the root directory)
-fastBPE (put in the root directory)
+- Python 3.6
+
+- sgfmill
+
+- tqdm
+
+- mosesdecoder (put in the root directory)
+
+- fastBPE (put in the root directory)
 
 ## Preprocessing
 
