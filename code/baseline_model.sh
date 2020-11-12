@@ -3,8 +3,10 @@ source ~/annoy_normal/bin/activate
 #$ -cwd
 #$ -N alphaGo
 #$ -l h=nlpgrid10
-#$ -l h_vmem=50G
+#$ -l h_vmem=100G
 python3 -u code/baseline_model.py \
 -outDir 'out/' \
 -dataDir 'data/' \
-> 'stdout/baseline_model.stdout' 2>&1 
+-end_index 5 \
+--FULL \
+> 'stdout/baseline_model_job2.stdout' 2>&1 

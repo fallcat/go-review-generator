@@ -40,7 +40,7 @@ data/test_comments.txt
 
 running board on full dataset..
 
-Time elapsed making board feature matrix:	00:01:47
+Time elapsed making board feature matrix:	00:01:53
 
 running text on full dataset..
 
@@ -51,7 +51,7 @@ train_text_feature_matrix.shape: (209566, 1000)
 
 Line 122 boards_mat.shape: (209566, 364) text_mat.shape: (209566, 1000)
 
-Line 14 X.shape, y.shape: ((2095660, 1364), (2095660,))
+Line 143 X.shape, y.shape: ((2095660, 1364), (2095660,))
 Time elapsed getting examples:	00:00:49
 
 running board on full dataset..
@@ -64,28 +64,14 @@ Time elapsed making text feature matrix:	00:00:01
 
 Line 122 boards_mat.shape: (20676, 364) text_mat.shape: (20676, 1000)
 
-Line 14 X.shape, y.shape: ((206760, 1364), (206760,))
+Line 143 X.shape, y.shape: ((206760, 1364), (206760,))
 Time elapsed getting examples:	00:00:03
 Line 150 X.shape: (2095660, 1364) y.shape: (2095660,) X_text.shape: (2095660, 1364) y_test.shape: (2095660,)
-/home1/i/irebecca/annoy_normal/lib64/python3.6/site-packages/sklearn/linear_model/_logistic.py:764: ConvergenceWarning: lbfgs failed to converge (status=1):
-STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
-
-Increase the number of iterations (max_iter) or scale the data as shown in:
-    https://scikit-learn.org/stable/modules/preprocessing.html
-Please also refer to the documentation for alternative solver options:
-    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
-  extra_warning_msg=_LOGISTIC_SOLVER_CONVERGENCE_MSG)
+Time elapsed training :	00:35:18
 Line 150 X.shape: (2095660, 1364) y.shape: (2095660,) X_text.shape: (206760, 1364) y_test.shape: (206760,)
-/home1/i/irebecca/annoy_normal/lib64/python3.6/site-packages/sklearn/linear_model/_logistic.py:764: ConvergenceWarning: lbfgs failed to converge (status=1):
-STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
-
-Increase the number of iterations (max_iter) or scale the data as shown in:
-    https://scikit-learn.org/stable/modules/preprocessing.html
-Please also refer to the documentation for alternative solver options:
-    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
-  extra_warning_msg=_LOGISTIC_SOLVER_CONVERGENCE_MSG)
+Time elapsed training :	00:37:22
 
 ---baseline stats---
 train accuracy:	0.9
 val accuracy:	0.9
-Time elapsed in main:	00:41:43
+Time elapsed in main:	01:22:37
