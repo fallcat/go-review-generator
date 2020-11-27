@@ -36,8 +36,8 @@ class TransformerModel(nn.Module):
     src = self.encoder(src) 
     src = src * math.sqrt(self.ninp)
     src = self.pos_encoder(src)
-    output = self.transformer_encoder(src, src_mask)
-    output = self.decoder(output)
+    feature = self.transformer_encoder(src, src_mask) #features from encoder
+    output = self.decoder(feature)
     return F.log_softmax(output, dim=-1)
 
 class TransformerModel_extractFeature(nn.Module):
