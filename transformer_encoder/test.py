@@ -116,6 +116,7 @@ model.load_state_dict(torch.load(save_path,map_location=lambda storage, loc: sto
 #model.load_state_dict(torch.load(save_path))
 save_batch = 2240
 
+#---------------------------training set start-------------------------------------
 '''
 print("training set:")
 os.system("mkdir train_batch_feature")
@@ -134,6 +135,7 @@ for count, i in enumerate(range(0, train_comments.size(0), save_batch)):
     print("current file:",filename)
 #print(len(whole_feature),len(train_labels))
 
+#---------------------------test set start-------------------------------------
 
 print("test set:")
 os.system("mkdir test_batch_feature")
@@ -151,6 +153,8 @@ for count, i in enumerate(range(0, test_comments.size(0), save_batch)):
   if count % 20 == 0 and count > 0:
     print("current file:",filename)
 '''
+
+#---------------------------validation set start-------------------------------------
 
 print("val set:")
 
