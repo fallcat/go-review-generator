@@ -59,7 +59,7 @@ def train(train_comments):
     optimizer.zero_grad()
     if data.size(0) != batch_size:
       src_mask = model.generate_square_subsequent_mask(data.size(0)).to(device)
-    output = model(data, src_mask)
+    features, output = model(data, src_mask)
     loss = criterion(output.view(-1, ntokens), targets.reshape(-1))
     loss.backward()
     #torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
