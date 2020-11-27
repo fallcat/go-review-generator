@@ -1,38 +1,31 @@
 # Go review matcher
 
 ## Requirements
-- Python 3.6
+- Python 3.8
 
-- sgfmill
+- pytorch 1.7.0
 
-- tqdm
+- CUDA 10.1
 
-- mosesdecoder (put in the root directory)
+## Usage
 
-- fastBPE (put in the root directory)
+Due to the storage limit, I only provide the model and weights here. Before you run any code, please put the data folder "data_splits_final" under "./transformer_encoder".
 
-## Preprocessing
-
+# 1. If you would like to generate the features first and use it as your input, directly run:
 ```
-mkdir data processed data_splits data_splits_final
-cd data
-curl -O https://gtl.xmp.net/sgf/zip/INDEX.txt
-curl -O https://gtl.xmp.net/sgf/zip/001-999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/1000-1999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/2000-2999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/3000-3999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/4000-4999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/5000-5999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/6000-6999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/7000-7999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/8000-8999-reviews.zip
-curl -O https://gtl.xmp.net/sgf/zip/9000-10000-reviews.zip
-find . -name '*.zip' -exec sh -c 'unzip -d "${1%.*}" "$1"' _ {} \;
-cd ..
-
-bash preprocess.sh
-python split_data.py
-bash apply_bpe.sh
-python remove_old_comments.py
-python get_neg_samples.py
+python test.py
 ```
+The current code will generate features for validation set. You may need to remove the comment around line 21, line 119 and comment out around line 26 and line 155 to generate features for training set and test set. 
+
+Again, due to the limit of memory, except the validation set, the output will be several small .pkl files. Those files are named "batch_\*" following the same order as the original data. Validation set will all be in one single file. Each file includes 2240 commment pairs. They are stored as a dictionary with two keys "features" and "labels". For example, we load the .pkl file to variable d. Then each comment pair has:
+```
+d["features"][0]=[comment_feature1,comment_feature2]
+d["labels"][0]=[label1,label2]
+```
+"comment_feature1/2" are the features of comment 1 or 2 for the board index '0' with shape (100,100). "lable1/2" are the labels(0 or 1) for comment 1 or 2. 
+
+You can decide how to use them in your model later. CAUTION: it may need a huge memory(100GB) and storage(100GB) to run.
+
+# 2. If you would like to use trained encoder and embeb it to your model:
+
+Please import "data_process.py" and "model.py" to your code first. The model you need is TransformerModel. In this case, you don't need the line 40 in "model.py". You only need to use the output of variable "feature". Be careful, the shape of features is (sentence_len, batch_size, hidden_dim), which is (100,64,100) in my model. You may would like to reshape it to (batch_size,sentence_len, hidden_dim) by "torch.transpose()".
