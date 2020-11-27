@@ -118,6 +118,8 @@ save_batch = 2240
 
 '''
 print("training set:")
+os.system("mkdir train_batch_feature")
+
 for count, i in enumerate(range(0, train_comments.size(0), save_batch)):
   train_loss, whole_feature = evaluate(model, train_comments[i:i+save_batch])
   temp_labels = train_labels[i:i+save_batch]
@@ -134,6 +136,7 @@ for count, i in enumerate(range(0, train_comments.size(0), save_batch)):
 
 
 print("test set:")
+os.system("mkdir test_batch_feature")
 
 for count, i in enumerate(range(0, test_comments.size(0), save_batch)):
   test_loss, whole_feature = evaluate(model, test_comments[i:i+save_batch])
