@@ -30,9 +30,9 @@ curl -O https://gtl.xmp.net/sgf/zip/9000-10000-reviews.zip
 find . -name '*.zip' -exec sh -c 'unzip -d "${1%.*}" "$1"' _ {} \;
 cd ..
 
-bash preprocess.sh
-python split_data.py
-bash apply_bpe.sh
-python remove_old_comments.py
-python get_neg_samples.py
+bash preprocessing/preprocess.sh
+python preprocessing/split_data.py
+bash preprocessing/apply_bpe.sh
+python preprocessing/remove_old_comments.py
+python preprocessing/get_neg_samples.py
 ```
