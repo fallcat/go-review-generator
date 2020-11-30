@@ -301,7 +301,6 @@ def extract_features(board_arr, color):
     }
 
     layerdict = dict(model.outputs_by_layer)
-    print("layerdict", layerdict)
     weightdict = dict()
     for v in tf.trainable_variables():
       weightdict[v.name] = v
