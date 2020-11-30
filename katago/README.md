@@ -5,6 +5,8 @@ Install requirements
 pip install tensorflow==1.15
 ```
 
+Sorry it's in `tensorflow` because the KataGo codebase used it. But the outputs are all in `numpy`.
+
 Assume you are already in the `katago` folder.
 
 ```
@@ -61,6 +63,6 @@ with tf.Session() as session:
     features1 = katago.extract_features(session, model, board_arr1, color1)
 ````
 
-The example is also in `test/test_extract_katago_features.py`. The features is a dictionary that contains a lot of features extracted and an extra item named `trunk`. All others are features described in the appendix of their paper https://arxiv.org/abs/1902.10565. `trunk` is an intermediate layer of the model before the policy and value heads. You can choose to use 1) all other features 2) just `trunk`, 3) or all together.
+The example is also in `test/test_extract_katago_features.py`. The features is a dictionary that contains a lot of features extracted and an extra item named `trunk`. All others are features described in the appendix of their paper https://arxiv.org/abs/1902.10565. `trunk` is an intermediate layer of the model before the policy and value heads (with dimension (19, 19, 256) for this trained model). You can choose to use 1) all other features 2) just `trunk`, 3) or all together.
 
 You just need to call `tf.Session` once in the outside, and have multiple `extract_features` inside.
