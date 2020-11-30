@@ -1,3 +1,7 @@
+"""
+Borrowed from KataGo https://github.com/lightvector/KataGo
+"""
+
 import sys
 import os
 import argparse

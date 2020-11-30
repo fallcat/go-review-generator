@@ -1,10 +1,14 @@
+"""
+Borrowed from KataGo https://github.com/lightvector/KataGo
+"""
+
 import logging
 import math
 import traceback
 import tensorflow as tf
 import numpy as np
 
-from board import Board
+from katago.board import Board
 import pdb
 
 #Feature extraction functions-------------------------------------------------------------------

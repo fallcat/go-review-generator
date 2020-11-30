@@ -1,14 +1,18 @@
 #!/usr/bin/python3
+import sys
+sys.path.append('.')
+sys.path.append('..')
+
 import math
 import json
 import tensorflow as tf
 import numpy as np
 
-from board import Board
-from model import Model
-import common
+from katago.board import Board
+from katago.model import Model
+from katago import common
 
-saved_model_dir = "trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
+saved_model_dir = "katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
 (model_variables_prefix, model_config_json) = common.load_model_paths({"saved_model_dir": saved_model_dir,
                                                                        "model_variables_prefix": None,
                                                                        "model_config_json": None})
