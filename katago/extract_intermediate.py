@@ -46,7 +46,7 @@ seki_output = seki_output[:,:,:,1] - seki_output[:,:,:,2]
 seki_output2 = tf.sigmoid(model.seki_output[:,:,:,3])
 scorebelief_output = tf.nn.softmax(model.scorebelief_output)
 sbscale_output = model.sbscale3_layer
-
+outputs_by_layer = model.outputs_by_layer
 
 class GameState:
   def __init__(self,board_size):
@@ -88,7 +88,8 @@ def get_outputs(session, gs, rules):
    seki,
    seki2,
    scorebelief,
-   sbscale
+   sbscale,
+   layers
   ] = fetch_output(session,gs,rules,[
     policy0_output,
     policy1_output,
@@ -103,7 +104,8 @@ def get_outputs(session, gs, rules):
     seki_output,
     seki_output2,
     scorebelief_output,
-    sbscale_output
+    sbscale_output,
+    outputs_by_layer
   ])
   board = gs.board
 
@@ -232,7 +234,8 @@ def get_outputs(session, gs, rules):
     "seki_by_loc2": seki_by_loc2,
     "scorebelief": scorebelief,
     "sbscale": sbscale,
-    "genmove_result": genmove_result
+    "genmove_result": genmove_result,
+    "layers": layers
   }
 
 
@@ -410,7 +413,7 @@ def extract_features(board_arr, color):
     outputs = get_outputs(session, gs, rules)
     print(outputs.keys())
     for k in outputs.keys():
-      if 'loc' not in k:
+      if 'loc' not in k and 'moves_and_probs' not in k:
         try:
           print(k, outputs[k].shape)
         except:
