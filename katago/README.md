@@ -5,6 +5,8 @@ Install requirements
 pip install tensorflow==1.15
 ```
 
+Sorry it's in `tensorflow` because the KataGo codebase used it. But the outputs are all in `numpy`.
+
 Assume you are already in the `katago` folder.
 
 ```
