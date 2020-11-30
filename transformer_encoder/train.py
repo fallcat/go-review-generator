@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time 
 from model import *
-from data_process import *
+from transformer_encoder.data_process import *
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 

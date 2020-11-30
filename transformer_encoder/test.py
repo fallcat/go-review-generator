@@ -1,10 +1,15 @@
+import sys
+sys.path.append('.')
+sys.path.append('..')
+
+
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time 
 from model import *
-from data_process import *
+from transformer_encoder.data_process import *
 import os
 import pickle
 
@@ -109,7 +114,7 @@ def evaluate(eval_model, data_source):
 best_val_loss = float("inf")
 epochs = 10 # The number of epochs
 best_model = None
-save_path = "./model_weights"
+save_path = "transformer_encoder/model_weights"
 
 #model.load_state_dict(torch.load(save_path).state_dict())
 model.load_state_dict(torch.load(save_path,map_location=lambda storage, loc: storage))
