@@ -11,7 +11,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
-data_dir = "./data_splits_final/"
+data_dir = "../../data_splits_final/"
 
 train_comments,train_labels,vocab_size = prepare_comment(data_dir+"train.choices.pkl", data_dir+"train_comments.tok.32000.txt", data_dir+"vocab.32000", cutoff=5)
 train_comments = train_comments.to(device)

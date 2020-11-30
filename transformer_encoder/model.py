@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 import numpy as np
 
-MAX_LENGTH = 200
+MAX_LENGTH = 100
 
 class TransformerModel(nn.Module):
 
@@ -17,7 +17,9 @@ class TransformerModel(nn.Module):
     self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
     self.encoder = nn.Embedding(ntoken, ninp)
     self.ninp = ninp
-    self.decoder = nn.Linear(ninp, ntoken)
+    self.fc1 = nn.Linear(ninp, ninp*2)
+    self.fc2 = nn.Linear(ninp*2, ntoken)
+    self.dropout = nn.Dropout(p=0.5)
 
     self.init_weights()
 
@@ -29,15 +31,17 @@ class TransformerModel(nn.Module):
   def init_weights(self):
     initrange = 0.1
     self.encoder.weight.data.uniform_(-initrange, initrange)
-    self.decoder.bias.data.zero_()
-    self.decoder.weight.data.uniform_(-initrange, initrange)
-
+    self.fc1.bias.data.zero_()
+    self.fc1.weight.data.uniform_(-initrange, initrange)
+    self.fc2.bias.data.zero_()
+    self.fc2.weight.data.uniform_(-initrange, initrange)
   def forward(self, src, src_mask):
     src = self.encoder(src) 
     src = src * math.sqrt(self.ninp)
     src = self.pos_encoder(src)
     feature = self.transformer_encoder(src, src_mask) #features from encoder
-    output = self.decoder(feature)
+    output = self.dropout(F.relu(self.fc1(feature)))
+    output = self.fc2(output)
     return F.log_softmax(output, dim=-1)
 
 class TransformerModel_extractFeature(nn.Module):
@@ -50,7 +54,11 @@ class TransformerModel_extractFeature(nn.Module):
     self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
     self.encoder = nn.Embedding(ntoken, ninp)
     self.ninp = ninp
-    self.decoder = nn.Linear(ninp, ntoken)
+    #self.decoder = nn.Linear(ninp, ntoken)
+    self.fc1 = nn.Linear(ninp, ninp*2)
+    self.fc2 = nn.Linear(ninp*2, ntoken)
+    self.dropout = nn.Dropout(p=0.5)
+
 
     self.init_weights()
 
@@ -62,16 +70,23 @@ class TransformerModel_extractFeature(nn.Module):
   def init_weights(self):
     initrange = 0.1
     self.encoder.weight.data.uniform_(-initrange, initrange)
-    self.decoder.bias.data.zero_()
-    self.decoder.weight.data.uniform_(-initrange, initrange)
+    self.fc1.bias.data.zero_()
+    self.fc1.weight.data.uniform_(-initrange, initrange)
+    self.fc2.bias.data.zero_()
+    self.fc2.weight.data.uniform_(-initrange, initrange)
+
 
   def forward(self, src, src_mask):
     src = self.encoder(src)
     src = src * math.sqrt(self.ninp)
     src = self.pos_encoder(src)
-    output = self.transformer_encoder(src, src_mask)
-    output1 = self.decoder(output)
-    return output,output1
+    feature = self.transformer_encoder(src, src_mask) #features from encoder
+    output = self.dropout(F.relu(self.fc1(feature)))
+    output = self.fc2(output)
+
+    #output = self.transformer_encoder(src, src_mask)
+    #output1 = self.decoder(output)
+    return feature,output
 
 
 
