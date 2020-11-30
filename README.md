@@ -33,3 +33,5 @@ Please import "data_process.py" and "model.py" to your code first. The model you
 # 3. Simply using it in your code:
 
 The get_comment_features.py file shows how to simply use the encoder and get the features. First of all, you need to import get_comment_features.py at the beginning. Then load your comment data with prepare_comment and model with load_model shown in the example. After those two steps, you can easily get features by `extract_comment_features(model, data)`, where the data is comments you would like to get features from. The function allows you to get features all at once or by batch. The output is a list and in shape of `(batch_size/data_size, 100, 200)`. Notice that every two output comments corresponds to one board and their labels are stored in variable "val_labels" in this example.
+
+**Remember to modify `data_dir` as the correct directory of your data before using**
