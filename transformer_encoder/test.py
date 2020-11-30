@@ -1,3 +1,8 @@
+import sys
+sys.path.append('.')
+sys.path.append('..')
+
+
 import math
 import torch
 import torch.nn as nn
