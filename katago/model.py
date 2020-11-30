@@ -1021,7 +1021,7 @@ class Model:
     #Normalize and relu just before the policy head
     trunk = self.relu("trunk/relu",(self.batchnorm_and_mask("trunk/norm",trunk,mask,mask_sum)))
     self.outputs_by_layer.append(("trunk",trunk))
-
+    self.trunk_output = trunk
     #Policy head---------------------------------------------------------------------------------
     p0_layer = trunk
 

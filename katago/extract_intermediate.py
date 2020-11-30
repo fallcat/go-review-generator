@@ -12,41 +12,30 @@ from katago.board import Board
 from katago.model import Model
 from katago import common
 
-saved_model_dir = "katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
-(model_variables_prefix, model_config_json) = common.load_model_paths({"saved_model_dir": saved_model_dir,
-                                                                       "model_variables_prefix": None,
-                                                                       "model_config_json": None})
-name_scope = "swa_model"
 
-#Hardcoded max board size
-pos_len = 19
+def get_model(saved_model_dir):
 
-# Model ----------------------------------------------------------------
+  (model_variables_prefix, model_config_json) = common.load_model_paths({"saved_model_dir": saved_model_dir,
+                                                                         "model_variables_prefix": None,
+                                                                         "model_config_json": None})
+  name_scope = "swa_model"
 
-with open(model_config_json) as f:
-  model_config = json.load(f)
+  #Hardcoded max board size
+  pos_len = 19
 
-if name_scope is not None:
-  with tf.compat.v1.variable_scope(name_scope):
+  # Model ----------------------------------------------------------------
+
+  with open(model_config_json) as f:
+    model_config = json.load(f)
+
+  if name_scope is not None:
+    with tf.compat.v1.variable_scope(name_scope):
+      model = Model(model_config,pos_len,{})
+  else:
     model = Model(model_config,pos_len,{})
-else:
-  model = Model(model_config,pos_len,{})
-policy0_output = tf.nn.softmax(model.policy_output[:,:,0])
-policy1_output = tf.nn.softmax(model.policy_output[:,:,1])
-value_output = tf.nn.softmax(model.value_output)
-scoremean_output = 20.0 * model.miscvalues_output[:,0]
-scorestdev_output = 20.0 * tf.math.softplus(model.miscvalues_output[:,1])
-lead_output = 20.0 * model.miscvalues_output[:,2]
-vtime_output = 150.0 * tf.math.softplus(model.miscvalues_output[:,3])
-ownership_output = tf.tanh(model.ownership_output)
-scoring_output = model.scoring_output
-futurepos_output = tf.tanh(model.futurepos_output)
-seki_output = tf.nn.softmax(model.seki_output[:,:,:,0:3])
-seki_output = seki_output[:,:,:,1] - seki_output[:,:,:,2]
-seki_output2 = tf.sigmoid(model.seki_output[:,:,:,3])
-scorebelief_output = tf.nn.softmax(model.scorebelief_output)
-sbscale_output = model.sbscale3_layer
-outputs_by_layer = model.outputs_by_layer
+
+  return model, model_variables_prefix, model_config_json
+
 
 class GameState:
   def __init__(self,board_size):
@@ -59,7 +48,7 @@ class GameState:
 
 # Moves ----------------------------------------------------------------
 
-def fetch_output(session, gs, rules, fetches):
+def fetch_output(session, model, gs, rules, fetches):
   bin_input_data = np.zeros(shape=[1]+model.bin_input_shape, dtype=np.float32)
   global_input_data = np.zeros(shape=[1]+model.global_input_shape, dtype=np.float32)
   pla = gs.board.pla
@@ -74,7 +63,24 @@ def fetch_output(session, gs, rules, fetches):
   })
   return [output[0] for output in outputs]
 
-def get_outputs(session, gs, rules):
+def get_outputs(session, model, gs, rules):
+  policy0_output = tf.nn.softmax(model.policy_output[:, :, 0])
+  policy1_output = tf.nn.softmax(model.policy_output[:, :, 1])
+  value_output = tf.nn.softmax(model.value_output)
+  scoremean_output = 20.0 * model.miscvalues_output[:, 0]
+  scorestdev_output = 20.0 * tf.math.softplus(model.miscvalues_output[:, 1])
+  lead_output = 20.0 * model.miscvalues_output[:, 2]
+  vtime_output = 150.0 * tf.math.softplus(model.miscvalues_output[:, 3])
+  ownership_output = tf.tanh(model.ownership_output)
+  scoring_output = model.scoring_output
+  futurepos_output = tf.tanh(model.futurepos_output)
+  seki_output = tf.nn.softmax(model.seki_output[:, :, :, 0:3])
+  seki_output = seki_output[:, :, :, 1] - seki_output[:, :, :, 2]
+  seki_output2 = tf.sigmoid(model.seki_output[:, :, :, 3])
+  scorebelief_output = tf.nn.softmax(model.scorebelief_output)
+  sbscale_output = model.sbscale3_layer
+  trunk_output = model.trunk_output
+
   [policy0,
    policy1,
    value,
@@ -89,8 +95,8 @@ def get_outputs(session, gs, rules):
    seki2,
    scorebelief,
    sbscale,
-   layers
-  ] = fetch_output(session,gs,rules,[
+   trunk
+  ] = fetch_output(session, model, gs,rules,[
     policy0_output,
     policy1_output,
     value_output,
@@ -105,7 +111,7 @@ def get_outputs(session, gs, rules):
     seki_output2,
     scorebelief_output,
     sbscale_output,
-    outputs_by_layer
+    trunk_output
   ])
   board = gs.board
 
@@ -235,194 +241,197 @@ def get_outputs(session, gs, rules):
     "scorebelief": scorebelief,
     "sbscale": sbscale,
     "genmove_result": genmove_result,
-    "layers": layers
+    "trunk": trunk
   }
 
 
-def extract_features(board_arr, color):
+def extract_features(session, model, board_arr, color):
   """
   Extract features from board (19x19 numpy array) using katago
   :param board_arr: numpy array (n x n)
   :return:
   """
-  saver = tf.train.Saver(
-    max_to_keep=10000,
-    save_relative_paths=True,
-  )
-  with tf.Session() as session:
-    saver.restore(session, model_variables_prefix)
 
-    known_commands = [
-      'boardsize',
-      'clear_board',
-      'showboard',
-      'komi',
-      'play',
-      'genmove',
-      'quit',
-      'name',
-      'version',
-      'known_command',
-      'list_commands',
-      'protocol_version',
-      'gogui-analyze_commands',
-      'setrule',
-      'policy',
-      'policy1',
-      'logpolicy',
-      'ownership',
-      'scoring',
-      'futurepos0',
-      'futurepos1',
-      'seki',
-      'seki2',
-      'scorebelief',
-      'passalive',
-    ]
-    known_analyze_commands = [
-      'gfx/Policy/policy',
-      'gfx/Policy1/policy1',
-      'gfx/LogPolicy/logpolicy',
-      'gfx/Ownership/ownership',
-      'gfx/Scoring/scoring',
-      'gfx/FuturePos0/futurepos0',
-      'gfx/FuturePos1/futurepos1',
-      'gfx/Seki/seki',
-      'gfx/Seki2/seki2',
-      'gfx/ScoreBelief/scorebelief',
-      'gfx/PassAlive/passalive',
-    ]
 
-    board_size = 19
-    gs = GameState(board_size)
+  known_commands = [
+    'boardsize',
+    'clear_board',
+    'showboard',
+    'komi',
+    'play',
+    'genmove',
+    'quit',
+    'name',
+    'version',
+    'known_command',
+    'list_commands',
+    'protocol_version',
+    'gogui-analyze_commands',
+    'setrule',
+    'policy',
+    'policy1',
+    'logpolicy',
+    'ownership',
+    'scoring',
+    'futurepos0',
+    'futurepos1',
+    'seki',
+    'seki2',
+    'scorebelief',
+    'passalive',
+  ]
+  known_analyze_commands = [
+    'gfx/Policy/policy',
+    'gfx/Policy1/policy1',
+    'gfx/LogPolicy/logpolicy',
+    'gfx/Ownership/ownership',
+    'gfx/Scoring/scoring',
+    'gfx/FuturePos0/futurepos0',
+    'gfx/FuturePos1/futurepos1',
+    'gfx/Seki/seki',
+    'gfx/Seki2/seki2',
+    'gfx/ScoreBelief/scorebelief',
+    'gfx/PassAlive/passalive',
+  ]
 
-    rules = {
-      "koRule": "KO_POSITIONAL",
-      "scoringRule": "SCORING_AREA",
-      "taxRule": "TAX_NONE",
-      "multiStoneSuicideLegal": True,
-      "hasButton": False,
-      "encorePhase": 0,
-      "passWouldEndPhase": False,
-      "whiteKomi": 7.5
-    }
+  board_size = 19
+  gs = GameState(board_size)
 
-    layerdict = dict(model.outputs_by_layer)
-    weightdict = dict()
-    for v in tf.trainable_variables():
-      weightdict[v.name] = v
+  rules = {
+    "koRule": "KO_POSITIONAL",
+    "scoringRule": "SCORING_AREA",
+    "taxRule": "TAX_NONE",
+    "multiStoneSuicideLegal": True,
+    "hasButton": False,
+    "encorePhase": 0,
+    "passWouldEndPhase": False,
+    "whiteKomi": 7.5
+  }
 
-    layer_command_lookup = dict()
+  layerdict = dict(model.outputs_by_layer)
+  weightdict = dict()
+  for v in tf.trainable_variables():
+    weightdict[v.name] = v
 
-    def add_extra_board_size_visualizations(layer_name, layer, normalization_div):
-      assert (layer.shape[1].value == board_size)
-      assert (layer.shape[2].value == board_size)
-      num_channels = layer.shape[3].value
-      for i in range(num_channels):
-        command_name = layer_name + "-" + str(i)
-        command_name = command_name.replace("/", ":")
-        known_commands.append(command_name)
-        known_analyze_commands.append("gfx/" + command_name + "/" + command_name)
-        layer_command_lookup[command_name.lower()] = (layer, i, normalization_div)
+  layer_command_lookup = dict()
 
-    def add_layer_visualizations(layer_name, normalization_div):
-      if layer_name in layerdict:
-        layer = layerdict[layer_name]
-        add_extra_board_size_visualizations(layer_name, layer, normalization_div)
-
-    add_layer_visualizations("conv1", normalization_div=6)
-    add_layer_visualizations("rconv1", normalization_div=14)
-    add_layer_visualizations("rconv2", normalization_div=20)
-    add_layer_visualizations("rconv3", normalization_div=26)
-    add_layer_visualizations("rconv4", normalization_div=36)
-    add_layer_visualizations("rconv5", normalization_div=40)
-    add_layer_visualizations("rconv6", normalization_div=40)
-    add_layer_visualizations("rconv7", normalization_div=44)
-    add_layer_visualizations("rconv7/conv1a", normalization_div=12)
-    add_layer_visualizations("rconv7/conv1b", normalization_div=12)
-    add_layer_visualizations("rconv8", normalization_div=48)
-    add_layer_visualizations("rconv9", normalization_div=52)
-    add_layer_visualizations("rconv10", normalization_div=55)
-    add_layer_visualizations("rconv11", normalization_div=58)
-    add_layer_visualizations("rconv11/conv1a", normalization_div=12)
-    add_layer_visualizations("rconv11/conv1b", normalization_div=12)
-    add_layer_visualizations("rconv12", normalization_div=58)
-    add_layer_visualizations("rconv13", normalization_div=64)
-    add_layer_visualizations("rconv14", normalization_div=66)
-    add_layer_visualizations("g1", normalization_div=6)
-    add_layer_visualizations("p1", normalization_div=2)
-    add_layer_visualizations("v1", normalization_div=4)
-
-    input_feature_command_lookup = dict()
-
-    def add_input_feature_visualizations(layer_name, feature_idx, normalization_div):
-      command_name = layer_name
+  def add_extra_board_size_visualizations(layer_name, layer, normalization_div):
+    assert (layer.shape[1].value == board_size)
+    assert (layer.shape[2].value == board_size)
+    num_channels = layer.shape[3].value
+    for i in range(num_channels):
+      command_name = layer_name + "-" + str(i)
       command_name = command_name.replace("/", ":")
       known_commands.append(command_name)
       known_analyze_commands.append("gfx/" + command_name + "/" + command_name)
-      input_feature_command_lookup[command_name] = (feature_idx, normalization_div)
+      layer_command_lookup[command_name.lower()] = (layer, i, normalization_div)
 
-    for i in range(model.bin_input_shape[1]):
-      add_input_feature_visualizations("input-" + str(i), i, normalization_div=1)
+  def add_layer_visualizations(layer_name, normalization_div):
+    if layer_name in layerdict:
+      layer = layerdict[layer_name]
+      add_extra_board_size_visualizations(layer_name, layer, normalization_div)
 
-    linear = tf.cumsum(tf.ones([19], dtype=tf.float32), axis=0, exclusive=True) / 18.0
-    color_calibration = tf.stack(axis=0, values=[
-      linear,
-      linear * 0.5,
-      linear * 0.2,
-      linear * 0.1,
-      linear * 0.05,
-      linear * 0.02,
-      linear * 0.01,
-      -linear,
-      -linear * 0.5,
-      -linear * 0.2,
-      -linear * 0.1,
-      -linear * 0.05,
-      -linear * 0.02,
-      -linear * 0.01,
-      linear * 2 - 1,
-      tf.zeros([19], dtype=tf.float32),
-      linear,
-      -linear,
-      tf.zeros([19], dtype=tf.float32)
-    ])
-    add_extra_board_size_visualizations("colorcalibration", tf.reshape(color_calibration, [1, 19, 19, 1]),
-                                        normalization_div=None)
+  add_layer_visualizations("conv1", normalization_div=6)
+  add_layer_visualizations("rconv1", normalization_div=14)
+  add_layer_visualizations("rconv2", normalization_div=20)
+  add_layer_visualizations("rconv3", normalization_div=26)
+  add_layer_visualizations("rconv4", normalization_div=36)
+  add_layer_visualizations("rconv5", normalization_div=40)
+  add_layer_visualizations("rconv6", normalization_div=40)
+  add_layer_visualizations("rconv7", normalization_div=44)
+  add_layer_visualizations("rconv7/conv1a", normalization_div=12)
+  add_layer_visualizations("rconv7/conv1b", normalization_div=12)
+  add_layer_visualizations("rconv8", normalization_div=48)
+  add_layer_visualizations("rconv9", normalization_div=52)
+  add_layer_visualizations("rconv10", normalization_div=55)
+  add_layer_visualizations("rconv11", normalization_div=58)
+  add_layer_visualizations("rconv11/conv1a", normalization_div=12)
+  add_layer_visualizations("rconv11/conv1b", normalization_div=12)
+  add_layer_visualizations("rconv12", normalization_div=58)
+  add_layer_visualizations("rconv13", normalization_div=64)
+  add_layer_visualizations("rconv14", normalization_div=66)
+  add_layer_visualizations("g1", normalization_div=6)
+  add_layer_visualizations("p1", normalization_div=2)
+  add_layer_visualizations("v1", normalization_div=4)
 
-    # pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
-    # loc = parse_coord(command[2], gs.board)
-    # gs.board.play(pla, loc)
-    # gs.moves.append((pla, loc))
-    # gs.boards.append(gs.board.copy())
+  input_feature_command_lookup = dict()
 
-    def add_board_arr(board_arr):
-      assert board_arr.shape == (19, 19)
-      for i in range(19):
-        for j in range(19):
-          if board_arr[i,j] != 0:
-            pla = (Board.BLACK if board_arr[i, j] == 1 else Board.WHITE)
-            loc = gs.board.loc(i,j)
+  def add_input_feature_visualizations(layer_name, feature_idx, normalization_div):
+    command_name = layer_name
+    command_name = command_name.replace("/", ":")
+    known_commands.append(command_name)
+    known_analyze_commands.append("gfx/" + command_name + "/" + command_name)
+    input_feature_command_lookup[command_name] = (feature_idx, normalization_div)
+
+  for i in range(model.bin_input_shape[1]):
+    add_input_feature_visualizations("input-" + str(i), i, normalization_div=1)
+
+  linear = tf.cumsum(tf.ones([19], dtype=tf.float32), axis=0, exclusive=True) / 18.0
+  color_calibration = tf.stack(axis=0, values=[
+    linear,
+    linear * 0.5,
+    linear * 0.2,
+    linear * 0.1,
+    linear * 0.05,
+    linear * 0.02,
+    linear * 0.01,
+    -linear,
+    -linear * 0.5,
+    -linear * 0.2,
+    -linear * 0.1,
+    -linear * 0.05,
+    -linear * 0.02,
+    -linear * 0.01,
+    linear * 2 - 1,
+    tf.zeros([19], dtype=tf.float32),
+    linear,
+    -linear,
+    tf.zeros([19], dtype=tf.float32)
+  ])
+  add_extra_board_size_visualizations("colorcalibration", tf.reshape(color_calibration, [1, 19, 19, 1]),
+                                      normalization_div=None)
+
+  # pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
+  # loc = parse_coord(command[2], gs.board)
+  # gs.board.play(pla, loc)
+  # gs.moves.append((pla, loc))
+  # gs.boards.append(gs.board.copy())
+
+  def add_board_arr(board_arr):
+    assert board_arr.shape == (19, 19)
+    for i in range(19):
+      for j in range(19):
+        if board_arr[i,j] != 0:
+          pla = (Board.BLACK if board_arr[i, j] == 1 else Board.WHITE)
+          loc = gs.board.loc(i,j)
+          gs.board.play(pla, loc)
+          gs.moves.append((pla, loc))
+          gs.boards.append(gs.board.copy())
+
+  add_board_arr(board_arr)
+
+  # swap because the color we enter is color of the last move instead of the current move
+  gs.board.pla = Board.WHITE if color == "b" or color == "B" else Board.BLACK
+
+  # "genmove"
+  outputs = get_outputs(session, model, gs, rules)
+
+  new_outputs = {}
+
+  for k in outputs.keys():
+    if 'loc' not in k and 'moves_and_probs' not in k:
+      new_outputs[k] = outputs[k]
+
+  return new_outputs
 
 
-    add_board_arr(board_arr)
-
-    gs.board.pla = Board.BLACK if color == "b" or color == "B" else Board.WHITE
-
-    # "genmove"
-    outputs = get_outputs(session, gs, rules)
-    print(outputs.keys())
-    for k in outputs.keys():
-      if 'loc' not in k and 'moves_and_probs' not in k:
-        try:
-          print(k, outputs[k].shape)
-        except:
-          print(k, outputs[k])
-    return outputs
-
+def get_xy(loc):
+  x = (loc % 19) - 1
+  y = (loc // 19) - 1
+  return x, y
 
 if __name__ == "__main__":
-  board_arr = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  board_arr1 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
@@ -441,6 +450,40 @@ if __name__ == "__main__":
                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
-  board_arr = np.array(board_arr)
-  color = 'b'
-  extract_features(board_arr, color)
+  board_arr1 = np.array(board_arr1)
+  color1 = 'b'
+
+  board_arr2 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+               [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+  board_arr2 = np.array(board_arr2)
+  color2 = 'w'
+
+  saved_model_dir = "katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
+  model, model_variables_prefix, model_config_json = get_model(saved_model_dir)
+
+  saver = tf.train.Saver(
+    max_to_keep=10000,
+    save_relative_paths=True,
+  )
+
+  with tf.Session() as session:
+    saver.restore(session, model_variables_prefix)
+    features1 = extract_features(session, model, board_arr1, color1)
+    features2 = extract_features(session, model, board_arr2, color2)
