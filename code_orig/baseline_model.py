@@ -7,6 +7,8 @@ import numpy as np
 import argparse
 import time
 import random
+import tensorflow as tf
+import katago
 from itertools import islice, product
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
