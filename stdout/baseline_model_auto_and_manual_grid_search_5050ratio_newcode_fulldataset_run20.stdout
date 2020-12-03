@@ -10,7 +10,7 @@ notes 50/50 ratio, max_features=1000, max_iter=5000, 20000 examples subset, 5 re
 outDir out/ 	 <class 'str'>
 dataDir data/ 	 <class 'str'>
 
-HERE YOU HADN'T CHANGED THE PARAMETER SEARCH TO INCLUDE ALL HYPERPARAMETERS (ONLY C REGULARIZATION VALUE) AND THEN YOU FORGOT YOU HAD IT HARDCODED IN MAIN.
+NOTE: REMEMBER YOU HAD ACCIDENTALLY HARDCODED C VALUE IN MAIN, YOU WEREN'T USING THE BEST ESTIMATOR, THEN YOU ONLY DID PARAMETER SEARCH OVER THE C VALUES ONLY.
 
 ---train fnames---
 len: 6
@@ -41,7 +41,7 @@ data/test_comments.txt
 
 ---TRAIN EXAMPLES---
 board_feature_matrix.shape: (209566, 364)
-Time elapsed making board feature matrix:	00:04:00
+Time elapsed making board feature matrix:	00:03:56
 text_feature_matrix.shape: (209566, 1000)
 Time elapsed making text feature matrix:	00:00:11
 boards_mat.shape: (209566, 364)
@@ -52,7 +52,7 @@ Time elapsed getting examples:	00:00:07
 
 ---VALIDATION EXAMPLES---
 board_feature_matrix.shape: (20676, 364)
-Time elapsed making board feature matrix:	00:00:24
+Time elapsed making board feature matrix:	00:00:23
 text_feature_matrix.shape: (20676, 1000)
 Time elapsed making text feature matrix:	00:00:01
 boards_mat.shape: (20676, 364)
@@ -73,7 +73,7 @@ Time elapsed getting examples:	00:00:08
 
 ---TEST EXAMPLES---
 board_feature_matrix.shape: (91468, 364)
-Time elapsed making board feature matrix:	00:01:44
+Time elapsed making board feature matrix:	00:01:41
 text_feature_matrix.shape: (91468, 1000)
 Time elapsed making text feature matrix:	00:00:05
 boards_mat.shape: (91468, 364)
@@ -87,10 +87,11 @@ confirm num of X examples and num of y examples:
 X_comb.shape (460484, 1364)	y_comb.shape: (460484,)
 starting auto parameter search..
 end auto parameter search..
-Time elapsed in doing an automatic parameter search:	00:01:34
-Time elapsed in auto training:	00:00:04
+Time elapsed in doing an automatic parameter search:	01:31:01
+Time elapsed in auto training:	00:02:36
 
 ---Results Auto Grid search---
-accuracy from auto search: 0.99085	best_params from auto search: {'C': 0.1}
-test_accuracy: 0.5827885162023877, test_best_params: {'C': 0.001, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1, 'l1_ratio': None, 'max_iter': 5000, 'multi_class': 'auto', 'n_jobs': None, 'penalty': 'l2', 'random_state': 0, 'solver': 'lbfgs', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
-Time elapsed in main:	00:08:34
+accuracy from auto search: 0.996091069396548
+best_params from auto search: {'C': 0.1}
+test_accuracy: 0.453863646302532, test_best_params: {'C': 0.001, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1, 'l1_ratio': None, 'max_iter': 5000, 'multi_class': 'auto', 'n_jobs': None, 'penalty': 'l2', 'random_state': 0, 'solver': 'lbfgs', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
+Time elapsed in main:	01:40:24

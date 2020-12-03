@@ -7,31 +7,19 @@ import numpy as np
 import argparse
 import time
 import random
-import tensorflow as tf
-import katago
 from itertools import islice, product
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, precision_score,recall_score,fbeta_score, confusion_matrix,roc_curve,auc
+from sklearn.metrics import accuracy_score, precision_score,recall_score, f1_score, fbeta_score, confusion_matrix, roc_curve, auc, classification_report
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.utils import shuffle
 import nltk
+import warnings
+warnings.filterwarnings('ignore')
 nltk.download('stopwords') 
 nltk.download('punkt')
-#TODO: Line 163 and 202, change max_iter parameter for log reg model if necessary
-#TODO: Line 137 and 208 CTRL-F [:20] to work with less data
-#TODO: Line 204 indexing debuggin statement on choices_labels
-'''Recommendations (meeting minutes)
-	Try get something simple to work first (Don't do LSTM or Transformer for now)
-	CNN for the go board, and just variations of CNN
-	BoW 500 most frequent words, (too ambitiouspretrained embeddings for the words)
-	1 pretrained board embeddings
-	Board + move (concatenate)
-	Board + Text (throw both into NN, concatenate)
-'''
 
 ## argparser
 parser = argparse.ArgumentParser(description='Processing list of files...')
@@ -128,17 +116,17 @@ def get_examples(boards_mats, text_mats, fnames):
 	for boards_mat, text_mat, fname in zip(boards_mats, text_mats,fnames):
 		print(f'boards_mat.shape: {boards_mat.shape}')
 		print(f'len(text_mat): {len(text_mat)}')
-		print(f'cur fname: {fname}')
+		print(f'cur fname: {fname}\n')
 		choices = next(lazy_load(fname))
 		for line in choices:
-			## split by tab first, then split by space
 			indices_str, pos_idx = line.split('\t')
 			cur_indices = [int(idx) for idx in indices_str.split()]
+			del cur_indices[int(pos_idx)]
 			## append positive example
 			X.append(np.concatenate((boards_mat[int(pos_idx)],text_mat[int(pos_idx)])))
 			y.append(1)
-			## append negative example, select a random choice from the 9 negative examples to choose from
-			X.append(np.concatenate((boards_mat[int(pos_idx)],text_mat[random.choice(cur_indices)])))
+			## append negative example, select the 1st negative example from the group
+			X.append(np.concatenate((boards_mat[int(pos_idx)],text_mat[cur_indices[0]])))
 			y.append(0)
 
 	examples_time = time.time() - start
@@ -148,134 +136,71 @@ def get_examples(boards_mats, text_mats, fnames):
 
 	return X_nparr, y_nparr
 
-def manual_grid_search(X, y, X_test, y_test):
-
-	## Set grid search parameters
-	start = time.time()
-	regularization_vals = [0.001, 0.01, 0.1, 1.0] #[0.01, 0.001, 0.01, 0.1, 1.0, 10]
-	# verbose_vals = [0,1,2]
-	# solver = ['lbfgs', 'liblinear', 'newton-cg']
-	# params = list(product(solver, verbose_vals, regularization_vals))
-	
-	## get model objects
-	LogReg_models = get_LogisticRegression_models(regularization_vals)
-	print(f'number of models: {len(LogReg_models)}')
-	## train models
-	accuracies, best_params = train(LogReg_models, X, y, X_test, y_test, regularization_vals)	
-
-	man_time = time.time() - start
-	print('Time elapsed doing manual grid search:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(man_time))))
-
-	return accuracies, best_params
-
-def automatic_grid_search(X, y):
+def automatic_grid_search(X, y, X_test, y_test, test_set=False):
 
 	# GRID SEARCH
 	#The newton-cg and lbfgs solvers support only L2 regularization with primal formulation. 
 	#The liblinear solver supports both L1 and L2 regularization, with a dual formulation only for the L2 penalty.
 	print(f'starting auto parameter search..')
 	start = time.time()
-	# parameters = [{'penalty': ['l1'], 'solver':['liblinear'], 'C': [0.001,0.01,0.1,1,10], 'verbose': [0,1,2]}
-	# 			{'penalty': ['l2'], 'solver':['lbfgs','liblinear','newton-cg','sag','saga'], 'C': [0.001,0.01,0.1,1,10], 'verbose': [0,1,2]}]
-	parameters = {'C': [0.001,0.01,0.1]}
-	clf = GridSearchCV(LogisticRegression(random_state=0, max_iter=5000), parameters) #, scoring='%s_macro' % score
-	clf.fit(X, y)
-	accuracy = clf.score(X,y)
-	best_params = clf.best_params_
+	clf = None
+	parameters = [{'penalty': ['l1'], 'solver':['liblinear'], 'C': [0.001,0.01,0.1,1,10]},
+	{'penalty': ['l2'], 'solver':['lbfgs','liblinear','sag'], 'C': [0.001,0.01,0.1,1,10]},
+	{'penalty': ['elasticnet'], 'l1_ratio':[0.25, 0.5, 0.6],'solver':['saga'], 'C': [0.001,0.01,0.1,1,10]}]
+
+	# parameters = [{'penalty': ['l1'], 'solver':['liblinear'], 'C': [0.001,0.01,0.1,1,10]}]
+	# parameters = [{'penalty': ['elasticnet'], 'l1_ratio':[0.25, 0.5, 0.6],'solver':['saga'], 'C': [0.001,0.01,0.1,1,10]}]
+	# parameters = [{'penalty': ['l2'], 'solver':['lbfgs','liblinear','sag'], 'C': [0.001,0.01,0.1,1,10]}] 
+	# parameters = {'C': [0.001,0.01,0.1]}
+
+	if test_set:
+
+		scores = ['precision', 'recall', 'f1','accuracy']
+
+		for score in scores:
+			print("\n# Tuning hyper-parameters for %s" % score)
+			print('\n')
+
+			clf = GridSearchCV(LogisticRegression(random_state=0, max_iter=10000), parameters, scoring='%s_macro' % score)
+			clf.fit(X, y)
+
+			print("Best parameters set found on development set:")
+			print('\n')
+			print(clf.best_params_)
+			print('\n')
+			print("Grid scores on development set:")
+			print('\n')
+			means = clf.cv_results_['mean_test_score']
+			stds = clf.cv_results_['std_test_score']
+			for mean, std, params in zip(means, stds, clf.cv_results_['params']):
+				print("%0.3f (+/-%0.03f) for %r"
+					  % (mean, std * 2, params))
+			print('\n')
+
+			print("Detailed classification report:")
+			print('\n')
+			print("The model is trained on the full development set.")
+			print("The scores are computed on the full evaluation set.")
+			print('\n')
+			y_true, y_pred = y_test, clf.predict(X_test)
+			print(classification_report(y_true, y_pred))
+			print('\n')
+
+	else:
+
+		clf = GridSearchCV(LogisticRegression(random_state=0, max_iter=10000), parameters)
+		clf.fit(X, y)
+
+
 	parameter_search_time = time.time() - start
 	print(f'end auto parameter search..')
-	print('Time elapsed in doing an automatic parameter search:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(parameter_search_time))))
+	print('Time elapsed in doing an automatic parameter search:\t%s\n' % (time.strftime("%H:%M:%S", time.gmtime(parameter_search_time))))
 
-	return accuracy, best_params
-
-
-## ADDED HW4 STUB CODE
-def train(models, X, y, X_test, y_test, params):
-	'''
-		Trains several models and returns the test accuracy for each of them
-		This is for the manual grid search
-		Args:
-		  models: list of model objects
-		Returns:
-		  overall_model_accuracies (float): overall accuracy of the model at the end of training
-		  indvl_model_accuracies (float): list of progressive accuracies as each prediction is being made
-		  best_params (list): list of the param combo that resulted in the best overall accuracy of the model
-	'''
-
-	start = time.time()
-	print(f'X.shape: {X.shape} \t y.shape: {y.shape}')
-	print(f'X_test.shape: {X_test.shape} \t y_test.shape: {y_test.shape}')
-
-	accuracies = []
-	max_acc, best_params = -float('inf'), None
-
-	for i, model in enumerate(models):
-
-		# Logistic Regression
-		model.fit(X, y)
-		cur_acc = model.score(X_test, y_test)
-		accuracies.append(cur_acc)
-
-		# Save best parameters
-		if cur_acc > max_acc:
-			max_acc = cur_acc
-			best_params = (i,params[i],max_acc)
-
-	training_time = time.time() - start
-	print(f'end logistic regression..') 
-	print('Time elapsed manually training (manual grid search) :\t%s' % (time.strftime("%H:%M:%S", time.gmtime(training_time))))
-
-	return accuracies, best_params
-
-def main(X, y, X_test, y_test, best_params):
-
-	start = time.time()
-	
-	# pen = best_params['penalty']
-	# sol = best_params['solver']
-	# c = best_params['C']
-	# verb = best_params['verbose']
-
-	# Logistic Regression 
-	# clf = LogisticRegression(penalty=best_params['penalty'], solver=best_params['solver'], C=best_params['C'], verbose=best_params['verbose'], random_state=0, max_iter=5000).fit(X, y)
-	clf = LogisticRegression(C=0.001, random_state=0, max_iter=5000).fit(X, y)
-	accuracy = clf.score(X_test, y_test)
-	params = clf.get_params()
-
-	training_time = time.time() - start
-	print('Time elapsed in auto training:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(training_time))))
-
-	return accuracy, params
+	return clf.score(X_test,y_test), clf.best_params_, clf.best_estimator_, clf.best_score_
 
 ################
 ### HELPER FUNCS
 ################
-
-## ADDED HW4 STUB CODE
-def get_LogisticRegression_models(params):
-  '''
-	  Creates model objects for Logistic Regression.
-	  See the documentation in sklearn here:
-	  https://scikit-learn.org/0.16/modules/generated/sklearn.linear_model.LogisticRegression.html
-  '''
-  
-  # To complete: Create a list of objects for the classifier for each of the above "LogReg" types
-  # LogReg_objs = [LogisticRegression(solver=s, verbose=v, C=c, random_state=0, max_iter=5000) for (s,v,c) in params]
-  LogReg_objs = [LogisticRegression(C=c, random_state=0, max_iter=5000) for c in params]
-
-  return LogReg_objs
-
-def progress_of_predictions(name, iterator, total_length, increment):
-	count = 0
-	while True:
-		next_batch = list(islice(iterator, increment))
-		if len(next_batch) > 0:
-			count += len(next_batch)
-			if count % 100000 == 0:
-				print(f'Generating predictions for {name}... percentage processed {(count/total_length)*100}')
-			yield next_batch
-		else:
-			break
 
 def lazy_pickle_load(fname):
 	file_obj = open(fname, "rb")
@@ -304,32 +229,27 @@ if __name__ == '__main__':
 	val_text_feature_matrix  = create_text_feature_matrix(val_text_fname)
 	X_val,  y_val = get_examples([val_board_feature_matrix], [val_text_feature_matrix], [val_choices_fname])
 
-	print('\n---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---')
-	X_comb,  y_comb= get_examples([train_board_feature_matrix,val_board_feature_matrix], [train_text_feature_matrix,val_text_feature_matrix], [train_choices_fname,val_choices_fname])
-
 	print('\n---TEST EXAMPLES---')
 	test_board_feature_matrix = create_board_feature_matrix(test_boards_fname)
 	test_text_feature_matrix  = create_text_feature_matrix(test_text_fname)
 	X_test,  y_test = get_examples([test_board_feature_matrix], [test_text_feature_matrix], [test_choices_fname])
 
-	print('\n---Logistic Regression Auto Grid In Progress---')
-	print('confirm num of X examples and num of y examples: ')
-	print(f'X_comb.shape {X_comb.shape}\ty_comb.shape: {y_comb.shape}')
-	accuracy, best_params = automatic_grid_search(X_comb, y_comb)
-	test_accuracy, test_best_params = main(X_train, y_train, X_test, y_test, best_params)
+	print('\n---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---')
+	X_comb, y_comb = get_examples([train_board_feature_matrix,val_board_feature_matrix], [train_text_feature_matrix,val_text_feature_matrix], [train_choices_fname,val_choices_fname])
 
-	print('\n---Results Auto Grid search---')
-	print(f'accuracy from auto search: {accuracy}\nbest_params from auto search: {best_params}')
-	print(f'test_accuracy: {test_accuracy}, test_best_params: {test_best_params}')
+	print('\n---Logistic Regression Auto Grid In Progress---')
+	train_accuracy, train_best_params, train_best_estimator, train_best_score  = automatic_grid_search(X_train, y_train, X_train, y_train)
+	val_accuracy, val_best_params, val_best_estimator, val_best_score  = automatic_grid_search(X_train, y_train, X_val, y_val)
+	test_accuracy, test_best_params, test_best_estimator, test_best_score  = automatic_grid_search(X_comb, y_comb, X_test, y_test, True)
+	
+	## display results
+	print('\n---Results---')
+	for title, params, acc in zip(['train:', 'val:', 'test:'], [train_best_params, val_best_params, test_best_params],[train_accuracy, val_accuracy, test_accuracy]):
+		print(f'{title}\tbest_model: {params}\taccuracy: {acc}')
 	
 	main_time = time.time() - start
 	print('Time elapsed in main:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(main_time))))
 
 
-'''
-## stats
-print('\n\t---accuracy scores---')  
-for model, acc in zip([1,5,10,50,100,500],accuracies):
-print(f'RF {model} \taccuracy: {acc}')
 
-'''
+

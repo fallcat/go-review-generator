@@ -6,11 +6,9 @@
 [nltk_data]   Package punkt is already up-to-date!
 
 ---argparser---:
-notes 50/50 ratio, max_features=1000, max_iter=5000, 20000 examples subset, 5 regularization values, using model.predict() method, using autogrid search only combining training and validation example. 	 <class 'str'>
+notes l2 hyperparameters to search with saga, max_iter=5K, 50/50 ratio, 20K examples subset, using model.predict() method, combined train+val example. 	 <class 'str'>
 outDir out/ 	 <class 'str'>
 dataDir data/ 	 <class 'str'>
-
-HERE YOU HADN'T CHANGED THE PARAMETER SEARCH TO INCLUDE ALL HYPERPARAMETERS (ONLY C REGULARIZATION VALUE) AND THEN YOU FORGOT YOU HAD IT HARDCODED IN MAIN.
 
 ---train fnames---
 len: 6
@@ -41,56 +39,68 @@ data/test_comments.txt
 
 ---TRAIN EXAMPLES---
 board_feature_matrix.shape: (209566, 364)
-Time elapsed making board feature matrix:	00:04:00
+Time elapsed making board feature matrix:	00:04:17
 text_feature_matrix.shape: (209566, 1000)
-Time elapsed making text feature matrix:	00:00:11
+Time elapsed making text feature matrix:	00:00:10
 boards_mat.shape: (209566, 364)
 len(text_mat): 209566
 cur fname: data/train.choices.txt
+
 X num_examples: (419132, 1364)	y num_examples: (419132,)
 Time elapsed getting examples:	00:00:07
 
 ---VALIDATION EXAMPLES---
 board_feature_matrix.shape: (20676, 364)
-Time elapsed making board feature matrix:	00:00:24
+Time elapsed making board feature matrix:	00:00:25
 text_feature_matrix.shape: (20676, 1000)
 Time elapsed making text feature matrix:	00:00:01
 boards_mat.shape: (20676, 364)
 len(text_mat): 20676
 cur fname: data/val.choices.txt
+
 X num_examples: (41352, 1364)	y num_examples: (41352,)
 Time elapsed getting examples:	00:00:00
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making board feature matrix:	00:01:50
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed making text feature matrix:	00:00:04
+boards_mat.shape: (91468, 364)
+len(text_mat): 91468
+cur fname: data/test.choices.txt
+
+X num_examples: (182936, 1364)	y num_examples: (182936,)
+Time elapsed getting examples:	00:00:03
 
 ---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---
 boards_mat.shape: (209566, 364)
 len(text_mat): 209566
 cur fname: data/train.choices.txt
+
 boards_mat.shape: (20676, 364)
 len(text_mat): 20676
 cur fname: data/val.choices.txt
+
 X num_examples: (460484, 1364)	y num_examples: (460484,)
 Time elapsed getting examples:	00:00:08
 
----TEST EXAMPLES---
-board_feature_matrix.shape: (91468, 364)
-Time elapsed making board feature matrix:	00:01:44
-text_feature_matrix.shape: (91468, 1000)
-Time elapsed making text feature matrix:	00:00:05
-boards_mat.shape: (91468, 364)
-len(text_mat): 91468
-cur fname: data/test.choices.txt
-X num_examples: (182936, 1364)	y num_examples: (182936,)
-Time elapsed getting examples:	00:00:03
-
 ---Logistic Regression Auto Grid In Progress---
-confirm num of X examples and num of y examples: 
-X_comb.shape (460484, 1364)	y_comb.shape: (460484,)
 starting auto parameter search..
 end auto parameter search..
-Time elapsed in doing an automatic parameter search:	00:01:34
-Time elapsed in auto training:	00:00:04
+Time elapsed in doing an automatic parameter search:	00:00:27
 
----Results Auto Grid search---
-accuracy from auto search: 0.99085	best_params from auto search: {'C': 0.1}
-test_accuracy: 0.5827885162023877, test_best_params: {'C': 0.001, 'class_weight': None, 'dual': False, 'fit_intercept': True, 'intercept_scaling': 1, 'l1_ratio': None, 'max_iter': 5000, 'multi_class': 'auto', 'n_jobs': None, 'penalty': 'l2', 'random_state': 0, 'solver': 'lbfgs', 'tol': 0.0001, 'verbose': 0, 'warm_start': False}
-Time elapsed in main:	00:08:34
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:00:28
+
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:00:27
+
+
+---Results---
+train:	params: {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.9220913697832663
+val:	params: {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.5120187657187076
+test:	params: {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.5385162023877202
+Time elapsed in main:	00:08:48
