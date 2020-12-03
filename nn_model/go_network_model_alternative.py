@@ -265,7 +265,7 @@ class MyModel(nn.Module):
 net_cnnlstm_test = MyModel()
 
 # set up criteria
-criterion = nn.CrossEntropyLoss()
+criterion = nn.BCELoss()
 optimizer = optim.Adam(net_cnnlstm_test.parameters())
 
 model, losses, accuracies = train_model(net_cnnlstm_test, criterion, optimizer, n_epochs = 5)
