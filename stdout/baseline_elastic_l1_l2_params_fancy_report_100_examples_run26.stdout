@@ -1,0 +1,310 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes l1/l2/elasticnet parameters and fancy report, max_iter=5K, 50/50 ratio, 100 examples subset, using model.predict() method, combined train+val example. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---TRAIN EXAMPLES---
+board_feature_matrix.shape: (209566, 364)
+Time elapsed making board feature matrix:	00:04:06
+text_feature_matrix.shape: (209566, 1000)
+Time elapsed making text feature matrix:	00:00:10
+boards_mat.shape: (209566, 364)
+len(text_mat): 209566
+cur fname: data/train.choices.txt
+
+X num_examples: (419132, 1364)	y num_examples: (419132,)
+Time elapsed getting examples:	00:00:06
+
+---VALIDATION EXAMPLES---
+board_feature_matrix.shape: (20676, 364)
+Time elapsed making board feature matrix:	00:00:24
+text_feature_matrix.shape: (20676, 1000)
+Time elapsed making text feature matrix:	00:00:01
+boards_mat.shape: (20676, 364)
+len(text_mat): 20676
+cur fname: data/val.choices.txt
+
+X num_examples: (41352, 1364)	y num_examples: (41352,)
+Time elapsed getting examples:	00:00:00
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making board feature matrix:	00:01:45
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed making text feature matrix:	00:00:04
+boards_mat.shape: (91468, 364)
+len(text_mat): 91468
+cur fname: data/test.choices.txt
+
+X num_examples: (182936, 1364)	y num_examples: (182936,)
+Time elapsed getting examples:	00:00:02
+
+---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---
+boards_mat.shape: (209566, 364)
+len(text_mat): 209566
+cur fname: data/train.choices.txt
+
+boards_mat.shape: (20676, 364)
+len(text_mat): 20676
+cur fname: data/val.choices.txt
+
+X num_examples: (460484, 1364)	y num_examples: (460484,)
+Time elapsed getting examples:	00:00:08
+
+---Logistic Regression Auto Grid In Progress---
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:04:37
+
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:04:36
+
+starting auto parameter search..
+
+# Tuning hyper-parameters for precision
+
+
+Best parameters set found on development set:
+
+
+{'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+
+
+Grid scores on development set:
+
+
+0.250 (+/-0.000) for {'C': 0.001, 'penalty': 'l1', 'solver': 'liblinear'}
+0.250 (+/-0.000) for {'C': 0.01, 'penalty': 'l1', 'solver': 'liblinear'}
+0.429 (+/-0.279) for {'C': 0.1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.860 (+/-0.130) for {'C': 1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.891 (+/-0.133) for {'C': 10, 'penalty': 'l1', 'solver': 'liblinear'}
+0.811 (+/-0.226) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.745 (+/-0.265) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.811 (+/-0.226) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.825 (+/-0.285) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.822 (+/-0.262) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.825 (+/-0.285) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.895 (+/-0.141) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.912 (+/-0.115) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.895 (+/-0.141) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.917 (+/-0.152) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.925 (+/-0.131) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.917 (+/-0.152) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.907 (+/-0.135) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.898 (+/-0.113) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.907 (+/-0.135) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+0.250 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.250 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.250 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.250 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.250 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.250 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.786 (+/-0.266) for {'C': 0.1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.765 (+/-0.184) for {'C': 0.1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.744 (+/-0.260) for {'C': 0.1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.925 (+/-0.099) for {'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.864 (+/-0.169) for {'C': 1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.864 (+/-0.169) for {'C': 1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.916 (+/-0.114) for {'C': 10, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.916 (+/-0.114) for {'C': 10, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.907 (+/-0.091) for {'C': 10, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.55      0.87      0.68     91468
+           1       0.70      0.30      0.42     91468
+
+    accuracy                           0.59    182936
+   macro avg       0.63      0.59      0.55    182936
+weighted avg       0.63      0.59      0.55    182936
+
+
+
+
+# Tuning hyper-parameters for recall
+
+
+Best parameters set found on development set:
+
+
+{'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+
+
+Grid scores on development set:
+
+
+0.500 (+/-0.000) for {'C': 0.001, 'penalty': 'l1', 'solver': 'liblinear'}
+0.500 (+/-0.000) for {'C': 0.01, 'penalty': 'l1', 'solver': 'liblinear'}
+0.480 (+/-0.150) for {'C': 0.1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.850 (+/-0.126) for {'C': 1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.880 (+/-0.136) for {'C': 10, 'penalty': 'l1', 'solver': 'liblinear'}
+0.780 (+/-0.242) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.740 (+/-0.271) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.780 (+/-0.242) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.820 (+/-0.287) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.810 (+/-0.279) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.820 (+/-0.287) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.890 (+/-0.147) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.910 (+/-0.117) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.890 (+/-0.147) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.910 (+/-0.160) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.920 (+/-0.136) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.910 (+/-0.160) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.900 (+/-0.141) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.890 (+/-0.117) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.900 (+/-0.141) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+0.500 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.500 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.500 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.500 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.500 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.500 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.780 (+/-0.265) for {'C': 0.1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.750 (+/-0.190) for {'C': 0.1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.730 (+/-0.258) for {'C': 0.1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.920 (+/-0.102) for {'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.850 (+/-0.167) for {'C': 1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.850 (+/-0.167) for {'C': 1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.910 (+/-0.117) for {'C': 10, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.910 (+/-0.117) for {'C': 10, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.900 (+/-0.089) for {'C': 10, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.54      0.58      0.56     91468
+           1       0.54      0.50      0.52     91468
+
+    accuracy                           0.54    182936
+   macro avg       0.54      0.54      0.54    182936
+weighted avg       0.54      0.54      0.54    182936
+
+
+
+
+# Tuning hyper-parameters for f1
+
+
+Best parameters set found on development set:
+
+
+{'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+
+
+Grid scores on development set:
+
+
+0.333 (+/-0.000) for {'C': 0.001, 'penalty': 'l1', 'solver': 'liblinear'}
+0.333 (+/-0.000) for {'C': 0.01, 'penalty': 'l1', 'solver': 'liblinear'}
+0.422 (+/-0.174) for {'C': 0.1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.849 (+/-0.127) for {'C': 1, 'penalty': 'l1', 'solver': 'liblinear'}
+0.879 (+/-0.136) for {'C': 10, 'penalty': 'l1', 'solver': 'liblinear'}
+0.772 (+/-0.254) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.734 (+/-0.289) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.772 (+/-0.254) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.819 (+/-0.290) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.806 (+/-0.286) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.819 (+/-0.290) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.889 (+/-0.148) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.910 (+/-0.117) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.889 (+/-0.148) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.909 (+/-0.161) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.920 (+/-0.136) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.909 (+/-0.161) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.899 (+/-0.143) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.889 (+/-0.118) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.899 (+/-0.143) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+0.333 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.333 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.333 (+/-0.000) for {'C': 0.001, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.333 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.333 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.333 (+/-0.000) for {'C': 0.01, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.777 (+/-0.272) for {'C': 0.1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.745 (+/-0.195) for {'C': 0.1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.726 (+/-0.258) for {'C': 0.1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.920 (+/-0.102) for {'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.848 (+/-0.169) for {'C': 1, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.848 (+/-0.169) for {'C': 1, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.910 (+/-0.117) for {'C': 10, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.910 (+/-0.117) for {'C': 10, 'l1_ratio': 0.5, 'penalty': 'elasticnet', 'solver': 'saga'}
+0.900 (+/-0.090) for {'C': 10, 'l1_ratio': 0.6, 'penalty': 'elasticnet', 'solver': 'saga'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.55      0.87      0.68     91468
+           1       0.70      0.30      0.42     91468
+
+    accuracy                           0.59    182936
+   macro avg       0.63      0.59      0.55    182936
+weighted avg       0.63      0.59      0.55    182936
+
+
+
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:14:15
+
+
+---Results---
+train:	params: {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.9220913697832663
+val:	params: {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.5120187657187076
+test:	params: {'C': 1, 'l1_ratio': 0.25, 'penalty': 'elasticnet', 'solver': 'saga'}	accuracy: 0.5496727175588387
+Time elapsed in main:	00:30:34

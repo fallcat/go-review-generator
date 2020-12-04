@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time 
-from model import *
+from transformer_encoder.model import *
 from transformer_encoder.data_process import *
 import os
 import pickle
