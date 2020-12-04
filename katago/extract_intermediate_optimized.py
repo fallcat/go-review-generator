@@ -74,9 +74,7 @@ def get_outputs(session, model, gs, rules):
     trunk_output
   ])
 
-
   return trunk
-
 
 
 def fetch_output_batch(session, model, gss, rules, fetches):
@@ -194,7 +192,7 @@ def extract_features_batch(session, model, board_arr, color):
           if board_arr_[i,j] != 0:
             pla = (Board.BLACK if board_arr_[i, j] == 1 else Board.WHITE)
             loc = gs.board.loc(i,j)
-            gs.board.play(pla, loc)
+            gs.board.add_unsafe(pla, loc)
             gs.moves.append((pla, loc))
             gs.boards.append(gs.board.copy())
       return gs

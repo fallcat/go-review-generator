@@ -109,7 +109,7 @@ with tf.Session() as session:
             label = sampled_batched[1]['label'][:, None]
 
             # model
-            start = time.time()
+            # start = time.time()
             # features1 = katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board[0], color[0])
             # print("time board1 features", time.time() - start)
             # start = time.time()
@@ -118,15 +118,15 @@ with tf.Session() as session:
             except IllegalMoveError:
                 print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
                 continue
-            print("time board features", time.time() - start)
+            # print("time board features", time.time() - start)
             start = time.time()
             text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
 
-            print("time text features", time.time() - start)
+            # print("time text features", time.time() - start)
             start = time.time()
             logits = combine_model(board_features, text_features)
             loss = criterion(logits, label.type_as(logits))
-            print("time model", time.time() - start)
+            # print("time model", time.time() - start)
             # optimize
             loss.backward()
             optimizer.step()
