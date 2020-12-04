@@ -106,7 +106,7 @@ with tf.Session() as session:
 
             # model
             board_features = torch.tensor([katago.extract_features(session, board_model, board_, color_)['trunk'] for board_, color_ in zip(board, color)])
-            text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text, batch_size, device))
+            text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device))
             logits = combine_model(board_features, text_features)
             loss = criterion(logits, label.type_as(logits))
 
