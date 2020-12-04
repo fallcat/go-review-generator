@@ -73,7 +73,7 @@ for param in text_model.parameters():
 # Construct the model
 combine_model = PretrainedCombineModel(combine=combine,d_model=d_model, dropout_p=dropout_p, nhid=nhid, emsize=emsize, board_embed_size=board_embed_size)
 if torch.cuda.is_available():
-    combine_model = nn.DataParallel(combine_model.cuda())
+    combine_model = combine_model.cuda()
 criterion = torch.nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(combine_model.parameters(), learning_rate)
 if scheduler_type == 'warmup':
