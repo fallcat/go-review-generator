@@ -2,6 +2,8 @@ import sys
 sys.path.append('.')
 sys.path.append('..')
 
+import time
+
 from tqdm import tqdm
 
 import torch
@@ -11,6 +13,7 @@ from torch.optim.lr_scheduler import LambdaLR, ExponentialLR
 import numpy as np
 import tensorflow as tf
 import katago
+from katago.board import IllegalMoveError
 
 from pretrained_combine.go_dataset_pretrained import GoDataset
 from torch.utils.data import DataLoader
@@ -25,7 +28,8 @@ torch.manual_seed(42)
 
 # configs
 data_dir = 'data_splits_final'
-katago_model_dir = 'katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/'
+# katago_model_dir = 'katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/'
+katago_model_dir = 'katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/'
 
 config = {'data_dir': data_dir}
 
@@ -44,7 +48,7 @@ dropout = 0.2 # the dropout value
 combine = 'concat'
 d_model = 512
 dropout_p = 0.1
-board_embed_size = 256
+board_embed_size = 128
 # optim conifg
 learning_rate = 3e-4
 scheduler_type = 'warmup'
@@ -105,11 +109,24 @@ with tf.Session() as session:
             label = sampled_batched[1]['label'][:, None]
 
             # model
-            board_features = torch.tensor([katago.extract_features(session, board_model, board_, color_)['trunk'] for board_, color_ in zip(board, color)]).to(device)
+            start = time.time()
+            # features1 = katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board[0], color[0])
+            # print("time board1 features", time.time() - start)
+            # start = time.time()
+            try:
+                board_features = torch.tensor(katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(device)
+            except IllegalMoveError:
+                print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
+                continue
+            print("time board features", time.time() - start)
+            start = time.time()
             text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+
+            print("time text features", time.time() - start)
+            start = time.time()
             logits = combine_model(board_features, text_features)
             loss = criterion(logits, label.type_as(logits))
-
+            print("time model", time.time() - start)
             # optimize
             loss.backward()
             optimizer.step()
