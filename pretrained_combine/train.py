@@ -66,7 +66,7 @@ ntokens = train_set.vocab_size # the size of vocabulary
 
 text_model = TransformerModel_extractFeature(ntokens, emsize, nhead, nhid, nlayers, dropout)
 if torch.cuda.is_available():
-    text_model = nn.DataParallel(text_model.cuda())
+    text_model = text_model.cuda()
 for param in text_model.parameters():
     param.requires_grad = False  # freeze params in the pretrained model
 
