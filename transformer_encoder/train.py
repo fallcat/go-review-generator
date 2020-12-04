@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time 
-from model import *
+from pretrained_combine import *
 from transformer_encoder.data_process import *
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
@@ -24,7 +24,7 @@ val_comments = val_comments.to(device)
 batch_size = 64 #batch size
 ntokens = vocab_size # the size of vocabulary
 emsize = 200 # embedding dimension
-nhid = 100 # the dimension of the feedforward network model in nn.TransformerEncoder
+nhid = 100 # the dimension of the feedforward network pretrained_combine in nn.TransformerEncoder
 nlayers = 2 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
 nhead = 2 # the number of heads in the multiheadattention models
 dropout = 0.2 # the dropout value
@@ -51,7 +51,7 @@ def train(train_comments):
     output = model(data, src_mask)
     loss = criterion(output.view(-1, ntokens), targets.reshape(-1))
     loss.backward()
-    #torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+    #torch.nn.utils.clip_grad_norm_(pretrained_combine.parameters(), 0.5)
     optimizer.step()
 
     total_loss += loss.item()

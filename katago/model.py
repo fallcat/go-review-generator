@@ -208,7 +208,6 @@ class Model:
   #Returns the new idx, which could be the same as idx if this isn't a good training row
   def fill_row_features(self, board, pla, opp, boards, moves, move_idx, rules, bin_input_data, global_input_data, idx):
     #Currently only support v4 or v5 or v7 MODEL features (inputs version v3 and v4 and v6)
-    print("-----fill_row_features-----")
     assert(self.version == 4 or self.version == 5 or self.version == 7 or self.version == 8)
 
     bsize = board.size
