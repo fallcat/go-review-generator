@@ -81,7 +81,7 @@ for i in range(len(train_comment)):
     comment_length.append(c_len)
 
 
-def prepare_data(board_obj, comment_obj, comment_vec_obj, comment_len_obj,choice_obj):
+def prepare_data(board_obj, comment_obj, comment_vec_obj, comment_len_obj, choice_obj):
     """
     initial process for the data
     """
@@ -132,13 +132,14 @@ final_train = data_utils.TensorDataset(torch.Tensor(np.array(X_board)), \
      torch.Tensor(np.array(X_move)), \
      torch.tensor(np.array(X_comment_vec), dtype = torch.long),\
      torch.tensor(np.array(X_comment_len), dtype=torch.long),
-     torch.tensor(np.array(y), dtype=torch.long))
+     torch.tensor(np.array(y), dtype=torch.float32))
 train_loader = data_utils.DataLoader(final_train, batch_size = 64, shuffle=True)
 
 
 def train_model(net, criterion, optimizer, n_epochs):
     losses = []
     accuracies = []
+    minibatch_accuracies = []
 
     corrected = 0
     total = 0
@@ -148,6 +149,7 @@ def train_model(net, criterion, optimizer, n_epochs):
         running_correct = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs
+            running_loss_bat = 0
 
             x1, x2, x3, x4, labels = data
 
@@ -155,33 +157,36 @@ def train_model(net, criterion, optimizer, n_epochs):
             optimizer.zero_grad()
             # forward + backward + optimize
             outputs = net(x1, x2, x3, x4)
+            labels = labels.unsqueeze(1)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
-            _, pred = torch.max(outputs.data, 1)
+            pred = (outputs >= 0.5).int()
 
             accuracy = (labels == pred).float().mean() # corrected / total
 
             # print statistics
             running_loss += loss.item()
+            running_loss_bat += loss.item()
             running_correct += (labels==pred).sum().item()
             if i % 200 == 199:    # print every 200 mini-batches
                 print('Epoch: %d, Batch: %5d, loss: %.3f' %
-                    (epoch + 1, i + 1, running_loss / 200))
+                    (epoch + 1, i + 1, running_loss_bat / 200))
                 print('Accuracy', accuracy.item())
-                running_loss = 0.0
+                minibatch_accuracies.append(accuracy.item())
+                running_loss_bat = 0.0
 
         epoch_duration = time.time() - since
         epoch_loss = running_loss / len(train_loader)
-        epoch_acc = 100 / 32 * running_correct / len(train_loader)
+        epoch_acc = 100 / 64 * running_correct / len(train_loader)
         print("Epoch %s, duration: %d s, loss: %.4f, acc: %.4f" % (epoch+1, epoch_duration, epoch_loss, epoch_acc))
             
         losses.append(epoch_loss)
         accuracies.append(epoch_acc)
 
     print('Finished Training')
-    return net, losses, accuracies
+    return net, losses, accuracies, minibatch_accuracies
 
    
 def model_eval(net):
@@ -208,17 +213,24 @@ class MyModel(nn.Module):
         super(MyModel, self).__init__()        
         # layers for board
         self.features1 = nn.Sequential(
-            nn.Conv2d(1, 3, 3, 1, 1),
-            nn.MaxPool2d(2),
-            nn.ReLU())
+            nn.Linear(19, 19*2),
+            #nn.Conv2d(1, 19, 5, 1, 2),
+            #nn.MaxPool2d(2),
+            nn.ReLU(),
+            nn.Linear(19*2, 19*2),
+        )
         # layers for move & player
         self.features2 = nn.Sequential(
             nn.Conv2d(1, 3, 3, 1, 1),
             nn.ReLU())
 
+        self.fc11 = nn.Linear(19, 19*2)
+        self.fc12 = nn.Linear(19*2, 19*2)    
+
         self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(253, 32)
-        self.classifier = nn.Linear(32, 2)
+        self.fc1 = nn.Linear(853, 100)
+        self.fc2 = nn.Linear(100, 100)
+        self.fc3 = nn.Linear(100, 1)
 
         # layer for comments
         self.embedding = nn.Embedding(vocab_size, 100)
@@ -230,12 +242,14 @@ class MyModel(nn.Module):
         
     def forward(self, x_board, x_move, text, text_len):
         # reshape x_board, x_move
-        x1 = x_board.unsqueeze(1)
-        x2 = x_move.unsqueeze(1)
-        x2 = x2.unsqueeze(3)
+        #x1 = x_board.unsqueeze(1)
+        #x2 = x_move.unsqueeze(1)
+        #x2 = x2.unsqueeze(3)
 
-        x1 = self.features1(x1)
-        x2 = self.features2(x2)
+        #x1 = self.features1(x1)
+        #x2 = self.features2(x2)
+        x1 = self.relu(self.fc11(x_board))
+        x1 = self.relu(self.fc12(x1))
 
         text_emb = self.embedding(text)
         #print(text_len)
@@ -245,20 +259,23 @@ class MyModel(nn.Module):
 
         out_forward = output[range(len(output)), text_len - 1, :self.dimension]
         out_reverse = output[:, 0, self.dimension:]
-        out_reduced = torch.cat((out_forward, out_reverse), 1)
-        text_fea = self.drop(out_reduced)
+        x3 = torch.cat((out_forward, out_reverse), 1)
+        #x3 = self.drop(out_reduced)
 
-        x3 = self.fc(text_fea)
+        #x3 = self.fc(text_fea)
         #text_fea = torch.squeeze(text_fea, 1)
         #text_out = torch.sigmoid(text_fea)
 
         x1 = x1.view(x1.size(0), -1)
-        x2 = x2.view(x2.size(0), -1)
+        x2 = x_move.view(x_move.size(0), -1)
         x3 = x3.view(x3.size(0), -1)
         
         x = torch.cat((x1, x2, x3), dim=1)
+        #x = self.drop(x)
         x = self.relu(self.fc1(x))
-        x = torch.sigmoid(x)
+        x = self.relu(self.fc2(x))
+        x = self.drop(x)
+        x = torch.sigmoid(self.fc3(x))
         return x
    
 
@@ -266,7 +283,11 @@ net_cnnlstm_test = MyModel()
 
 # set up criteria
 criterion = nn.BCELoss()
-optimizer = optim.Adam(net_cnnlstm_test.parameters())
+optimizer = optim.Adam(net_cnnlstm_test.parameters(), lr=0.01)
 
-model, losses, accuracies = train_model(net_cnnlstm_test, criterion, optimizer, n_epochs = 5)
+model, losses, accuracies, acc_mb = train_model(net_cnnlstm_test, criterion, optimizer, n_epochs = 5)
 
+print(time.time)
+#output = net_cnnlstm_test(x1,x2,x3,x4)
+#pred = (outputs >= 0.5).int()
+#accuracy = (labels == pred).float().mean() # corrected / total
