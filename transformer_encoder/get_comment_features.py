@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time 
-from model import *
+from pretrained_combine import *
 from transformer_encoder.data_process import *
 import os
 import pickle
@@ -18,7 +18,7 @@ def load_model():
   batch_size = 64
   ntokens = vocab_size # the size of vocabulary
   emsize = 200 # embedding dimension
-  nhid = 100 # the dimension of the feedforward network model in nn.TransformerEncoder
+  nhid = 100 # the dimension of the feedforward network pretrained_combine in nn.TransformerEncoder
   nlayers = 2 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
   nhead = 2 # the number of heads in the multiheadattention models
   dropout = 0.2 # the dropout value
@@ -76,7 +76,7 @@ if __name__ == "__main__":
   batch_size = 64
   ntokens = vocab_size # the size of vocabulary
   emsize = 200 # embedding dimension
-  nhid = 100 # the dimension of the feedforward network model in nn.TransformerEncoder
+  nhid = 100 # the dimension of the feedforward network pretrained_combine in nn.TransformerEncoder
   nlayers = 2 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
   nhead = 2 # the number of heads in the multiheadattention models
   dropout = 0.2 # the dropout value
