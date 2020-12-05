@@ -224,20 +224,24 @@ class MyModel(nn.Module):
             nn.Conv2d(1, 3, 3, 1, 1),
             nn.ReLU())
 
-        self.fc11 = nn.Linear(19, 19*2)
-        self.fc12 = nn.Linear(19*2, 19*2)    
-
+        self.fc11 = nn.Linear(19, 19*19)
+        self.fc12 = nn.Linear(19*19, 19)    
+        
+        self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
-        self.fc1 = nn.Linear(853, 100)
-        self.fc2 = nn.Linear(100, 100)
-        self.fc3 = nn.Linear(100, 1)
+        self.sp = nn.Softplus()
+        self.fc1 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+        self.bil = nn.Bilinear(6862, 128, 64)
 
         # layer for comments
         self.embedding = nn.Embedding(vocab_size, 100)
         self.dimension = dimension
         self.lstm = nn.LSTM(input_size=100, hidden_size=dimension, num_layers=1,
                             batch_first=True, bidirectional=True)
-        self.drop = nn.Dropout(p=0.2)
+        self.drop = nn.Dropout(p=0.5)
         self.fc = nn.Linear(2*dimension, 1)
         
     def forward(self, x_board, x_move, text, text_len):
@@ -245,11 +249,11 @@ class MyModel(nn.Module):
         #x1 = x_board.unsqueeze(1)
         #x2 = x_move.unsqueeze(1)
         #x2 = x2.unsqueeze(3)
-
         #x1 = self.features1(x1)
         #x2 = self.features2(x2)
-        x1 = self.relu(self.fc11(x_board))
-        x1 = self.relu(self.fc12(x1))
+
+        x1 = self.sp(self.fc11(x_board))
+        #x1 = self.sp(self.fc12(x1))
 
         text_emb = self.embedding(text)
         #print(text_len)
@@ -270,20 +274,21 @@ class MyModel(nn.Module):
         x2 = x_move.view(x_move.size(0), -1)
         x3 = x3.view(x3.size(0), -1)
         
-        x = torch.cat((x1, x2, x3), dim=1)
+        x = torch.cat((x1, x2), dim=1)
+        x = self.bil(x, x3)
         #x = self.drop(x)
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.drop(x)
-        x = torch.sigmoid(self.fc3(x))
-        return x
+        x = self.drop(self.relu(self.fc1(x))) 
+        x = self.drop(self.relu(self.fc2(x)))
+  
+        final_out = torch.sigmoid(self.fc3(x))
+        return final_out
    
 
 net_cnnlstm_test = MyModel()
 
 # set up criteria
 criterion = nn.BCELoss()
-optimizer = optim.Adam(net_cnnlstm_test.parameters(), lr=0.01)
+optimizer = optim.Adam(net_cnnlstm_test.parameters())
 
 model, losses, accuracies, acc_mb = train_model(net_cnnlstm_test, criterion, optimizer, n_epochs = 5)
 
