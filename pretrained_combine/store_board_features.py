@@ -40,7 +40,10 @@ num_epoch = 10
 config = {'data_dir': data_dir,
           'katago_model_dir': katago_model_dir,
           'device': device}
+print('=============Getting training set=============')
 train_set = GoDataset(config, split='train')
+print('=============Getting validation set=============')
 val_set = GoDataset(config, split='val')
+print('=============Getting testing set=============')
 test_set = GoDataset(config, split='test')
 
