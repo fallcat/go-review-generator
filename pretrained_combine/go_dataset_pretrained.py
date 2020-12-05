@@ -73,7 +73,7 @@ class GoDataset(Dataset):
             with tf.Session() as session:
                 saver.restore(session, model_variables_prefix)
 
-                num_batches = math.ceil(self.data_raw['boards'] / self.board_features_batch_size)
+                num_batches = math.ceil(len(self.data_raw['boards']) / self.board_features_batch_size)
                 for i in tqdm(range(num_batches)):
                     board_features = torch.tensor(
                         extract_features_batch(session, board_model,
