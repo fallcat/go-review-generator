@@ -10,7 +10,9 @@ from transformer_encoder.model import *
 from transformer_encoder import data_process
 
 import katago
+from katago.extract_intermediate_optimized import extract_features_batch
 import tensorflow as tf
+from tqdm import tqdm
 
 class GoDataset(Dataset):
     '''Class for go dataset'''
@@ -25,7 +27,8 @@ class GoDataset(Dataset):
         self.data = []
         self.vocab_size = None
         self.data_raw = {}
-        self.board_features = None
+        self.board_features_batch_size = 128
+        self.board_features = []
         self.choices = {}
 
         self.get_board()
@@ -53,7 +56,7 @@ class GoDataset(Dataset):
         if os.path.exists(bin_path):
             with open(bin_path, 'rb') as input_file:
                 board_features = pickle.load(input_file)
-            self.board_features = board_features
+            self.board_features = board_features.to(self.device)
         else:
             with open(pkl_path, 'rb') as input_file:
                 board_data = pickle.load(input_file)
@@ -69,12 +72,21 @@ class GoDataset(Dataset):
             )
             with tf.Session() as session:
                 saver.restore(session, model_variables_prefix)
-                board_features = torch.tensor(
-                    katago.extract_intermediate_optimized.extract_features_batch(session, board_model, self.data_raw['boards'], self.data_raw['cols'], use_tqdm=True)).to(
-                    self.device)
-            self.board_features = board_features
+
+                num_batches = math.ceil(self.data_raw['boards'] / self.board_features_batch_size)
+                for i in tqdm(range(num_batches)):
+                    board_features = torch.tensor(
+                        extract_features_batch(session, board_model,
+                                               self.data_raw['boards'][i * self.board_features_batch_size:
+                                                                       (i+1) * self.board_features_batch_size],
+                                               self.data_raw['colors'][i * self.board_features_batch_size:
+                                                                       (i+1) * self.board_features_batch_size], use_tqdm=True)).to(
+                        self.device)
+                    self.board_features.append(board_features)
+            self.board_features = np.concatenate(board_features, axis=0)
+            print('self.board_features shape', self.board_features.shape)
             with open(bin_path, 'wb') as output_file:
-                pickle.dump(board_features, output_file)
+                pickle.dump(self.board_features, output_file)
 
     def get_text(self):
         print("------ Loading text ------")
