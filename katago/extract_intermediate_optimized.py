@@ -13,6 +13,7 @@ from katago.model import Model
 from katago import common
 
 import time
+from tqdm import tqdm
 
 def get_model(saved_model_dir):
 
@@ -162,7 +163,7 @@ def extract_features(session, model, board_arr, color):
   return outputs
 
 
-def extract_features_batch(session, model, board_arr, color):
+def extract_features_batch(session, model, board_arr, color, use_tqdm=False):
   """
   Extract features from board (19x19 numpy array) using katago
   :param board_arr: numpy array (n x n)
@@ -204,9 +205,12 @@ def extract_features_batch(session, model, board_arr, color):
     return gs
 
   gss = []
-  for board_arr_, color_ in zip(board_arr, color):
-
-    gss.append(get_gss(board_arr_, color_))
+  if use_tqdm:
+    for board_arr_, color_ in tqdm(zip(board_arr, color)):
+      gss.append(get_gss(board_arr_, color_))
+  else:
+    for board_arr_, color_ in zip(board_arr, color):
+      gss.append(get_gss(board_arr_, color_))
 
   # print("time add board", time.time() - start)
   # start = time.time()
