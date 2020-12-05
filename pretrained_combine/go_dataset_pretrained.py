@@ -80,7 +80,7 @@ class GoDataset(Dataset):
                                                self.data_raw['boards'][i * self.board_features_batch_size:
                                                                        (i+1) * self.board_features_batch_size],
                                                self.data_raw['colors'][i * self.board_features_batch_size:
-                                                                       (i+1) * self.board_features_batch_size], use_tqdm=True)).to(
+                                                                       (i+1) * self.board_features_batch_size], use_tqdm=False)).to(
                         self.device)
                     self.board_features.append(board_features)
             self.board_features = np.concatenate(board_features, axis=0)
