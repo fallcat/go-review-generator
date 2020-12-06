@@ -43,6 +43,8 @@ def parse_args():
                         help='Directory to save the experiment')
 
     # training config
+    parser.add_argument('--split', type=str, default='train',
+                        help='Which split to use to train. Could use val for debugging')
     parser.add_argument('--batch-size', type=int, default=128, help='Batch size for each step')
     parser.add_argument('--num-epoch', type=int, default=10, help='Number of epochs to trian')
     parser.add_argument('--track', default=False, action='store_true', help='Use this flag to track the experiment')
@@ -54,18 +56,22 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=42, help='Manual seed for torch')
 
     # text config
-    parser.add_argument('--emsize', type=int, default=200, help='embedding dimension')
+    parser.add_argument('--emsize', type=int, default=200, help='embedding dimension for text')
     parser.add_argument('--nhid', type=int, default=100,
                         help='the dimension of the feedforward network model in nn.TransformerEncoder')
     parser.add_argument('--nlayers', type=int, default=2,
                         help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder')
     parser.add_argument('--nhead', type=int, default=2, help='the number of heads in the multiheadattention models')
     parser.add_argument('--dropout', type=float, default=0.2, help='the dropout value')
+    parser.add_argument('--sentence-len', type=int, default=100, help='sentence len')
+    parser.add_argument('--text-hidden-dim', type=int, default=200, help='text hidden dim')
 
     # combine model config
-    parser.add_argument('--combine', type=str, default='concat', choices=['concat'],
+    parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'dot', 'attn'],
                         help='Hidden dim size for the combine model')
     parser.add_argument('--d-model', type=int, default=512, help='Hidden dim size for the combine model')
+    parser.add_argument('--combine-num-heads', type=int, default=4,
+                        help='Num heads in the multiheaded attention in combine if have chosen attn as combine type')
     parser.add_argument('--dropout-p', type=float, default=0.1, help='Dropout rate for the combine model')
     parser.add_argument('--board-embed-size', type=int, default=128, help='Size of board embedding. '
                                                                           'This depends on which katago model you use.')
@@ -121,7 +127,7 @@ def main():
     config = {'data_dir': args.data_dir,
               'device': device,
               }
-    train_set = GoDataset(config, split='train')
+    train_set = GoDataset(config, split=args.split)
     val_set = GoDataset(config, split='val')
 
     train_dataloader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0)
@@ -145,7 +151,8 @@ def main():
 
     # Construct the model
     combine_model = PretrainedCombineModel(combine=args.combine,d_model=args.d_model, dropout_p=args.dropout_p,
-                                           nhid=args.nhid, emsize=args.emsize, board_embed_size=args.board_embed_size)
+                                           sentence_len=args.sentence_len, text_hidden_dim=args.text_hidden_dim,
+                                           board_embed_size=args.board_embed_size, num_heads=args.combine_num_heads)
     if torch.cuda.is_available():
         combine_model = combine_model.cuda()
 
