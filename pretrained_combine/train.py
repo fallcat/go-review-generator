@@ -114,6 +114,7 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     accuracy = float(total_correct) / total_total
     loss_avg = float(total_loss) / total_total
     combine_model.train()
+    print(f'Validation accuracy: {accuracy}, validation loss: {loss_avg}')
     return accuracy, loss_avg
 
 
@@ -246,7 +247,7 @@ def main():
                            'lr': lr_scheduler.get_lr(),
                            'epoch': epoch,
                            'step': step})
-
+        print("----------Finished training----------")
 
 
 if __name__ == '__main__':
