@@ -228,11 +228,11 @@ def main():
                     loss_avg = float(loss_accumulate) / count_accumulate
                     loss_accumulate = 0
                     count_accumulate = 0
-            if args.track:
-                wandb.log({'Train Loss': loss_avg,
-                           'lr': lr_scheduler.get_lr(),
-                           'epoch': epoch,
-                           'step': step})
+                    if args.track:
+                        wandb.log({'Train Loss': loss_avg,
+                                   'lr': lr_scheduler.get_lr(),
+                                   'epoch': epoch,
+                                   'step': step})
             val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
             val_loss_history.append(val_loss)
             if val_loss >= max(val_loss_history):  # best
