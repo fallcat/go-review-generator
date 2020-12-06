@@ -7,6 +7,7 @@ import pdb
 import os
 import shutil
 import wandb
+import argparse
 
 from tqdm import tqdm
 
@@ -28,6 +29,10 @@ from transformer_encoder.model import *
 from pretrained_combine.model import PretrainedCombineModel
 from pretrained_combine.utils import WarmupLRSchedule, checkpoint
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--data-dir', type=str, default='data_splits_final', help='Directory to ')
 
 torch.manual_seed(42)
 wandb.init(project='go-review-matcher')
@@ -111,41 +116,43 @@ else:
 
 
 
-def evaluate(session, combine_model, board_model, text_model, val_dataloader, model_variables_prefix, device):
-    combine_model.eval()
-    batches = tqdm(enumerate(val_dataloader))
-    total_correct = 0
-    total_loss = 0
-    total_total = 0
-    count = 0
-    for i_batch, sampled_batched in batches:
-        count += 1
-        color = sampled_batched[1]['color']
-        board = sampled_batched[1]['board'].numpy()
-        text = sampled_batched[1]['text']
-        label = sampled_batched[1]['label'][:, None]
+def evaluate(combine_model, board_model, text_model, val_dataloader, model_variables_prefix):
+    with tf.Session() as session:
+        saver.restore(session, model_variables_prefix)
+        combine_model.eval()
+        batches = tqdm(enumerate(val_dataloader))
+        total_correct = 0
+        total_loss = 0
+        total_total = 0
+        count = 0
+        for i_batch, sampled_batched in batches:
+            count += 1
+            color = sampled_batched[1]['color']
+            board = sampled_batched[1]['board'].numpy()
+            text = sampled_batched[1]['text']
+            label = sampled_batched[1]['label'][:, None]
 
-        try:
-            board_features = torch.tensor(
-                katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(
-                device)
-        except IllegalMoveError:
-            print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-            continue
+            try:
+                board_features = torch.tensor(
+                    katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(
+                    device)
+            except IllegalMoveError:
+                print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
+                continue
 
-        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
-        logits = combine_model(board_features, text_features)
-        loss = criterion(logits, label.type_as(logits))
-        total_loss += loss
-        pred = logits >= 0.5
-        correct = sum(pred == label)
-        total = label.shape[0]
-        total_correct += correct
-        total_total += total
-        if count == 10:
-            break
-    accuracy = float(total_correct) / total_total
-    loss_avg = float(total_loss) / total_total
+            text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+            logits = combine_model(board_features, text_features)
+            loss = criterion(logits, label.type_as(logits))
+            total_loss += loss
+            pred = logits >= 0.5
+            correct = sum(pred == label)
+            total = label.shape[0]
+            total_correct += correct
+            total_total += total
+            if count == 10:
+                break
+        accuracy = float(total_correct) / total_total
+        loss_avg = float(total_loss) / total_total
     combine_model.train()
     return accuracy, loss_avg
 
@@ -206,7 +213,7 @@ with tf.Session() as session:
                 checkpoint_path = checkpoint(epoch, i_batch, modules, experiment_dir, max_checkpoints=max_checkpoints)
 
                 loss_avg = float(loss_accumulate) / count_accumulate
-                val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, val_dataloader, model_variables_prefix, device)
+                val_acc, val_loss = evaluate(combine_model, board_model, text_model, val_dataloader, model_variables_prefix)
                 val_loss_history.append(val_loss)
                 if val_loss >= max(val_loss_history):  # best
                     dirname = os.path.dirname(checkpoint_path)
