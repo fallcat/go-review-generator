@@ -80,12 +80,15 @@ def parse_args():
 
 
 def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device):
+    print('------ evaluate ------')
     combine_model.eval()
     batches = tqdm(enumerate(val_dataloader))
+    num_batches = int(len(val_dataloader.dataset) / batch_size)
     total_correct = 0
     total_loss = 0
     total_total = 0
     for i_batch, sampled_batched in batches:
+        batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
         color = sampled_batched[1]['color']
         board = sampled_batched[1]['board'].numpy()
         text = sampled_batched[1]['text']
@@ -170,28 +173,28 @@ def main():
     else:
         raise ValueError('Unknown scheduler type: ', args.scheduler_type)
 
-    num_batches = len(train_set) / args.batch_size
-    epochs = tqdm(range(args.num_epoch))
-    loss_accumulate = 0
-    count_accumulate = 0
-
     modules = {'combine_model': combine_model,
                'optimizer': optimizer,
                'lr_scheduler': lr_scheduler}
 
-    val_loss_history = []
+
 
     # training
     combine_model.train()
     with tf.Session() as session:
         saver.restore(session, model_variables_prefix)
         step = 0
+        loss_accumulate = 0
+        count_accumulate = 0
+        val_loss_history = []
+        epochs = tqdm(range(args.num_epoch))
+        num_batches = int(len(train_set) / args.batch_size)
         for epoch in epochs:
             epochs.set_description(f'Epoch {epoch}')
-            batches = tqdm(enumerate(train_dataloader))
+            batches = tqdm(enumerate(train_dataloader, 1))
             for i_batch, sampled_batched in batches:
                 step += 1
-                batches.set_description(f'batch {i_batch}/{num_batches}')
+                batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
                 color = sampled_batched[1]['color']
                 board = sampled_batched[1]['board'].numpy()
                 text = sampled_batched[1]['text']
@@ -222,22 +225,28 @@ def main():
                     checkpoint_path = checkpoint(epoch, i_batch, modules, args.experiment_dir, max_checkpoints=args.max_checkpoints)
 
                     loss_avg = float(loss_accumulate) / count_accumulate
-                    val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
-                    val_loss_history.append(val_loss)
-                    if val_loss >= max(val_loss_history):  # best
-                        dirname = os.path.dirname(checkpoint_path)
-                        basename = os.path.basename(checkpoint_path)
-                        best_checkpoint_path = os.path.join(dirname, f'best_{basename}')
-                        shutil.copy2(checkpoint_path, best_checkpoint_path)
-                    if args.track:
-                        wandb.log({'Val Accuracy': val_acc,
-                                   'Val Loss': val_loss,
-                                   'Train Loss': loss_avg,
-                                   'lr': lr_scheduler.get_lr(),
-                                   'epoch': epoch,
-                                   'step': step})
                     loss_accumulate = 0
                     count_accumulate = 0
+            if args.track:
+                wandb.log({'Train Loss': loss_avg,
+                           'lr': lr_scheduler.get_lr(),
+                           'epoch': epoch,
+                           'step': step})
+            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
+            val_loss_history.append(val_loss)
+            if val_loss >= max(val_loss_history):  # best
+                dirname = os.path.dirname(checkpoint_path)
+                basename = os.path.basename(checkpoint_path)
+                best_checkpoint_path = os.path.join(dirname, f'best_{basename}')
+                shutil.copy2(checkpoint_path, best_checkpoint_path)
+            if args.track:
+                wandb.log({'Val Accuracy': val_acc,
+                           'Val Loss': val_loss,
+                           'Train Loss': loss_avg,
+                           'lr': lr_scheduler.get_lr(),
+                           'epoch': epoch,
+                           'step': step})
+
 
 
 if __name__ == '__main__':
