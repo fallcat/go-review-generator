@@ -34,8 +34,8 @@ class GoDataset(Dataset):
         self.get_board()
         self.get_text()
         self.get_choices()
-        # self.get_pos_neg_examples()
-        self.get_pos_neg_examples_features()
+        self.get_pos_neg_examples()
+        # self.get_pos_neg_examples_features()
 
     def __getitem__(self, index):
         ''' Get the positive and negative examples at index '''
@@ -51,42 +51,14 @@ class GoDataset(Dataset):
 
     def get_board(self):
         print("------ Loading boards ------")
-        bin_path = os.path.join(self.data_dir, self.split + '.bin')
         pkl_path = os.path.join(self.data_dir, self.split + '.pkl')
-        if os.path.exists(bin_path):
-            with open(bin_path, 'rb') as input_file:
-                board_features = pickle.load(input_file)
-            self.board_features = board_features.to(self.device)
-        else:
-            with open(pkl_path, 'rb') as input_file:
-                board_data = pickle.load(input_file)
-            self.data_raw['rows'] = np.array([board[0] for board in board_data['boards']])
-            self.data_raw['cols'] = np.array([board[1] for board in board_data['boards']])
-            self.data_raw['colors'] = np.array([board[2] for board in board_data['boards']])
-            self.data_raw['boards'] = np.array([board[3] for board in board_data['boards']])
 
-            board_model, model_variables_prefix, model_config_json = katago.get_model(self.config['katago_model_dir'])
-            saver = tf.train.Saver(
-                max_to_keep=10000,
-                save_relative_paths=True,
-            )
-            with tf.Session() as session:
-                saver.restore(session, model_variables_prefix)
-
-                num_batches = math.ceil(len(self.data_raw['boards']) / self.board_features_batch_size)
-                for i in tqdm(range(num_batches)):
-                    board_features = torch.tensor(
-                        extract_features_batch(session, board_model,
-                                               self.data_raw['boards'][i * self.board_features_batch_size:
-                                                                       (i+1) * self.board_features_batch_size],
-                                               self.data_raw['colors'][i * self.board_features_batch_size:
-                                                                       (i+1) * self.board_features_batch_size], use_tqdm=False)).to(
-                        self.device)
-                    self.board_features.append(board_features)
-            self.board_features = np.concatenate(board_features, axis=0)
-            print('self.board_features shape', self.board_features.shape)
-            with open(bin_path, 'wb') as output_file:
-                pickle.dump(self.board_features, output_file)
+        with open(pkl_path, 'rb') as input_file:
+            board_data = pickle.load(input_file)
+        self.data_raw['rows'] = np.array([board[0] for board in board_data['boards']])
+        self.data_raw['cols'] = np.array([board[1] for board in board_data['boards']])
+        self.data_raw['colors'] = np.array([board[2] for board in board_data['boards']])
+        self.data_raw['boards'] = np.array([board[3] for board in board_data['boards']])
 
     def get_text(self):
         print("------ Loading text ------")
