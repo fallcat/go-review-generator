@@ -40,7 +40,7 @@ experiment_dir = 'experiments/exp01'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-batch_size = 64
+batch_size = 128
 num_epoch = 10
 
 # text config
