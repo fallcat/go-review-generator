@@ -21,14 +21,11 @@ class GoDataset(Dataset):
         super(GoDataset, self).__init__()
         self.split = split
         self.data_dir = config['data_dir']
-        self.config = config
         self.device = config['device']
 
         self.data = []
         self.vocab_size = None
         self.data_raw = {}
-        self.board_features_batch_size = 128
-        self.board_features = []
         self.choices = {}
 
         self.get_board()
