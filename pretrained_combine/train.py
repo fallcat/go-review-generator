@@ -83,7 +83,7 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
         color = sampled_batched[1]['color']
         board = sampled_batched[1]['board'].numpy()
         text = sampled_batched[1]['text']
-        label = sampled_batched[1]['label'][:, None]
+        label = sampled_batched[1]['label'][:, None].to(device)
 
         try:
             board_features = torch.tensor(

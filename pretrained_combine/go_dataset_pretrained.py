@@ -1,18 +1,10 @@
 import os
-import torch
 import pickle
-from torch import nn
 from torch.utils.data import Dataset
 import collections
-
-from transformer_encoder import get_comment_features
 from transformer_encoder.model import *
 from transformer_encoder import data_process
 
-import katago
-from katago.extract_intermediate_optimized import extract_features_batch
-import tensorflow as tf
-from tqdm import tqdm
 
 class GoDataset(Dataset):
     '''Class for go dataset'''
@@ -32,7 +24,6 @@ class GoDataset(Dataset):
         self.get_text()
         self.get_choices()
         self.get_pos_neg_examples()
-        # self.get_pos_neg_examples_features()
 
     def __getitem__(self, index):
         ''' Get the positive and negative examples at index '''
@@ -74,6 +65,14 @@ class GoDataset(Dataset):
         with open(choices_path, 'rb') as input_file:
             self.choices = pickle.load(input_file)
 
+    def get_example(self, board_idx, text_idx, label):
+        row = self.data_raw['rows'][board_idx]
+        col = self.data_raw['cols'][board_idx]
+        color = self.data_raw['colors'][board_idx]
+        board = self.data_raw['boards'][board_idx]
+        text = self.data_raw['texts'][text_idx]
+        return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label}
+
     def get_pos_neg_examples(self):
         print("------ Loading positive and negative examples ------")
         for index in range(len(self.choices['choice_indices'])):
@@ -81,32 +80,7 @@ class GoDataset(Dataset):
             pos_idx = choice_indices[self.choices['answers'][index]]
             neg_idx = choice_indices[1] if self.choices['answers'][index] == 0 else choice_indices[0]
 
-            def get_example(board_idx, text_idx, label):
-                row = self.data_raw['rows'][board_idx]
-                col = self.data_raw['cols'][board_idx]
-                color = self.data_raw['colors'][board_idx]
-                board = self.data_raw['boards'][board_idx]
-                text = self.data_raw['texts'][text_idx]
-                return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label}
-
-            pos_example = get_example(pos_idx, pos_idx, 1)
-            neg_example = get_example(pos_idx, neg_idx, 0)
-            self.data.append(pos_example)
-            self.data.append(neg_example)
-
-    def get_pos_neg_examples_features(self):
-        print("------ Loading positive and negative examples ------")
-        for index in range(len(self.choices['choice_indices'])):
-            choice_indices = self.choices['choice_indices'][index]
-            pos_idx = choice_indices[self.choices['answers'][index]]
-            neg_idx = choice_indices[1] if self.choices['answers'][index] == 0 else choice_indices[0]
-
-            def get_example(board_idx, text_idx, label):
-                board_features = self.board_features[board_idx]
-                text = self.data_raw['texts'][text_idx]
-                return {'board_features': board_features, 'text': text, 'label': label}
-
-            pos_example = get_example(pos_idx, pos_idx, 1)
-            neg_example = get_example(pos_idx, neg_idx, 0)
+            pos_example = self.get_example(pos_idx, pos_idx, 1)
+            neg_example = self.get_example(pos_idx, neg_idx, 0)
             self.data.append(pos_example)
             self.data.append(neg_example)
