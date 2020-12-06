@@ -70,7 +70,7 @@ config = {'data_dir': data_dir,
           'batch_size': batch_size,
           'num_epoch': num_epoch,
           }
-train_set = GoDataset(config, split='val')
+train_set = GoDataset(config, split='train')
 val_set = GoDataset(config, split='val')
 
 train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
