@@ -47,17 +47,17 @@ class GoDataset(Dataset):
         self.data_raw['cols'] = np.array([board[1] for board in board_data['boards']])
         self.data_raw['colors'] = np.array([board[2] for board in board_data['boards']])
         self.data_raw['boards'] = np.array([board[3] for board in board_data['boards']])
+        print('Boards shape', self.data_raw['boards'].shape)
 
     def get_text(self):
         print("------ Loading text ------")
-        choices_filepath = os.path.join(self.data_dir,  f'{self.split}.choices.pkl')
         comments_filepath = os.path.join(self.data_dir,  f'{self.split}_comments.tok.32000.txt')
         vocab_filepath = os.path.join(self.data_dir,  'vocab.32000')
-        comments, labels, vocab_size = data_process.prepare_comment(choices_filepath, comments_filepath, vocab_filepath,
-                                                                    cutoff=5)
+        comments, vocab_size = torch.tensor(data_process.read_comment_subword(comments_filepath, vocab_filepath, 5))
 
         self.data_raw['texts'] = comments
         self.vocab_size = vocab_size
+        print('Texts shape', self.data_raw['texts'].shape)
 
     def get_choices(self):
         print("------ Loading choices ------")

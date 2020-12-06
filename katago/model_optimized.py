@@ -215,10 +215,12 @@ class Model:
     assert(len(boards) > 0)
     assert(board.zobrist == boards[move_idx].zobrist)
 
+    bin_input_data[idx, :, 0] = 1.0
+    bin_input_data[idx, board.board[]]
+
     for y in range(bsize):
       for x in range(bsize):
         pos = self.xy_to_tensor_pos(x,y)
-        bin_input_data[idx,pos,0] = 1.0
         loc = board.loc(x,y)
         stone = board.board[loc]
         if stone == pla:
