@@ -53,9 +53,9 @@ class GoDataset(Dataset):
         print("------ Loading text ------")
         comments_filepath = os.path.join(self.data_dir,  f'{self.split}_comments.tok.32000.txt')
         vocab_filepath = os.path.join(self.data_dir,  'vocab.32000')
-        comments, vocab_size = torch.tensor(data_process.read_comment_subword(comments_filepath, vocab_filepath, 5))
+        comments, vocab_size = data_process.read_comment_subword(comments_filepath, vocab_filepath, 5)
 
-        self.data_raw['texts'] = comments
+        self.data_raw['texts'] = torch.tensor(comments).to(self.device)
         self.vocab_size = vocab_size
         print('Texts shape', self.data_raw['texts'].shape)
 
