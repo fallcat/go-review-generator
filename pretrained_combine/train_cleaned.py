@@ -32,7 +32,32 @@ from pretrained_combine.utils import WarmupLRSchedule, checkpoint
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data-dir', type=str, default='data_splits_final', help='Directory to ')
+
+    # paths
+    parser.add_argument('-d', '--data-dir', type=str, default='data_splits_final', help='Directory of data')
+    parser.add_argument('--katago-model-dir', type=str,
+                        default='katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/',
+                        help='Directory of katago model')
+    parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
+                        help='Directory to save the experiment')
+
+    # training config
+    parser.add_argument('--batch-size', type=int, default=128, help='Batch size for each step')
+    parser.add_argument('--num-epoch', type=int, default=10, help='Number of epochs to trian')
+
+    # text config
+    parser.add_argument('--emsize', type=int, default=200, help='embedding dimension')
+    parser.add_argument('--nhid', type=int, default=100,
+                        help='the dimension of the feedforward network model in nn.TransformerEncoder')
+    parser.add_argument('--nlayers', type=int, default=2,
+                        help='the number of nn.TransformerEncoderLayer in nn.TransformerEncoder')
+    parser.add_argument('--nhead', type=int, default=2, help='the number of heads in the multiheadattention models')
+    parser.add_argument('--dropout', type=float, default=0.2, help='the dropout value')
+
+    # combine model config
+
+
+
 
 torch.manual_seed(42)
 wandb.init(project='go-review-matcher')

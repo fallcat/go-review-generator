@@ -110,7 +110,7 @@ else:
     raise ValueError('Unknown scheduler type: ', scheduler_type)
 
 
-def evaluate(session, combine_model, board_model, text_model, val_dataloader, model_variables_prefix, device):
+def evaluate(session, combine_model, board_model, text_model, val_dataloader, device):
     combine_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     total_correct = 0
@@ -120,7 +120,7 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, mo
         color = sampled_batched[1]['color']
         board = sampled_batched[1]['board'].numpy()
         text = sampled_batched[1]['text']
-        label = sampled_batched[1]['label'][:, None]
+        label = sampled_batched[1]['label'][:, None].to(device)
 
         try:
             board_features = torch.tensor(
@@ -178,13 +178,14 @@ with tf.Session() as session:
 
             try:
                 board_features = torch.tensor(
-                    katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(
-                    device)
+                    katago.extract_intermediate_optimized.extract_features_batch(session, board_model,
+                                                                                 board, color)).to(device)
             except IllegalMoveError:
                 print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
                 continue
 
-            text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+            text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text, batch_size,
+                                                                                       device)).to(device)
 
             # print("time text features", time.time() - start)
             # start = time.time()
@@ -203,7 +204,7 @@ with tf.Session() as session:
                 checkpoint_path = checkpoint(epoch, i_batch, modules, experiment_dir, max_checkpoints=max_checkpoints)
 
                 loss_avg = float(loss_accumulate) / count_accumulate
-                val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, val_dataloader, model_variables_prefix, device)
+                val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, val_dataloader, device)
                 val_loss_history.append(val_loss)
                 if val_loss >= max(val_loss_history):  # best
                     dirname = os.path.dirname(checkpoint_path)
@@ -213,7 +214,7 @@ with tf.Session() as session:
                 wandb.log({'Val Accuracy': val_acc,
                            'Val Loss': val_loss,
                            'Train Loss': loss_avg,
-                           'lr': lr_scheduler.get_last_lr(),
+                           'lr': lr_scheduler.get_lr()[0],
                            'epoch': epoch,
                            'step': step})
                 loss_accumulate = 0

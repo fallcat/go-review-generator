@@ -90,7 +90,7 @@ class GoDataset(Dataset):
                 color = self.data_raw['colors'][board_idx]
                 board = self.data_raw['boards'][board_idx]
                 text = self.data_raw['texts'][text_idx]
-                return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label.to(self.device)}
+                return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label}
 
             pos_example = get_example(pos_idx, pos_idx, 1)
             neg_example = get_example(pos_idx, neg_idx, 0)
