@@ -110,16 +110,13 @@ else:
     raise ValueError('Unknown scheduler type: ', scheduler_type)
 
 
-
 def evaluate(session, combine_model, board_model, text_model, val_dataloader, model_variables_prefix, device):
     combine_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     total_correct = 0
     total_loss = 0
     total_total = 0
-    count = 0
     for i_batch, sampled_batched in batches:
-        count += 1
         color = sampled_batched[1]['color']
         board = sampled_batched[1]['board'].numpy()
         text = sampled_batched[1]['text']
@@ -138,12 +135,12 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, mo
         loss = criterion(logits, label.type_as(logits))
         total_loss += loss
         pred = logits >= 0.5
+        print("pred is_cuda", pred.is_cuda)
+        print("label is_cuda", label.is_cuda)
         correct = sum(pred == label)
         total = label.shape[0]
         total_correct += correct
         total_total += total
-        if count == 10:
-            break
     accuracy = float(total_correct) / total_total
     loss_avg = float(total_loss) / total_total
     combine_model.train()
