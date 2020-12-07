@@ -215,12 +215,10 @@ class Model:
     assert(len(boards) > 0)
     assert(board.zobrist == boards[move_idx].zobrist)
 
-    bin_input_data[idx, :, 0] = 1.0
-    bin_input_data[idx, board.board[]]
-
     for y in range(bsize):
       for x in range(bsize):
         pos = self.xy_to_tensor_pos(x,y)
+        bin_input_data[idx,pos,0] = 1.0
         loc = board.loc(x,y)
         stone = board.board[loc]
         if stone == pla:
@@ -283,53 +281,6 @@ class Model:
                 bin_input_data[idx,pos,13] = 1.0
               elif prev5_loc == Board.PASS_LOC:
                 global_input_data[idx,4] = 1.0
-
-      # Python code does NOT handle superko
-      if board.simple_ko_point is not None:
-        pos = self.loc_to_tensor_pos(board.simple_ko_point, board)
-        bin_input_data[idx, pos, 6] = 1.0
-      # Python code does NOT handle ko-prohibited encore spots or anything relating to the encore
-      # so features 7 and 8 leave that blank
-
-      if move_idx >= 1 and moves[move_idx - 1][0] == opp:
-        prev1_loc = moves[move_idx - 1][1]
-        if prev1_loc is not None and prev1_loc != Board.PASS_LOC:
-          pos = self.loc_to_tensor_pos(prev1_loc, board)
-          bin_input_data[idx, pos, 9] = 1.0
-        elif prev1_loc == Board.PASS_LOC:
-          global_input_data[idx, 0] = 1.0
-
-        if move_idx >= 2 and moves[move_idx - 2][0] == pla:
-          prev2_loc = moves[move_idx - 2][1]
-          if prev2_loc is not None and prev2_loc != Board.PASS_LOC:
-            pos = self.loc_to_tensor_pos(prev2_loc, board)
-            bin_input_data[idx, pos, 10] = 1.0
-          elif prev2_loc == Board.PASS_LOC:
-            global_input_data[idx, 1] = 1.0
-
-          if move_idx >= 3 and moves[move_idx - 3][0] == opp:
-            prev3_loc = moves[move_idx - 3][1]
-            if prev3_loc is not None and prev3_loc != Board.PASS_LOC:
-              pos = self.loc_to_tensor_pos(prev3_loc, board)
-              bin_input_data[idx, pos, 11] = 1.0
-            elif prev3_loc == Board.PASS_LOC:
-              global_input_data[idx, 2] = 1.0
-
-            if move_idx >= 4 and moves[move_idx - 4][0] == pla:
-              prev4_loc = moves[move_idx - 4][1]
-              if prev4_loc is not None and prev4_loc != Board.PASS_LOC:
-                pos = self.loc_to_tensor_pos(prev4_loc, board)
-                bin_input_data[idx, pos, 12] = 1.0
-              elif prev4_loc == Board.PASS_LOC:
-                global_input_data[idx, 3] = 1.0
-
-              if move_idx >= 5 and moves[move_idx - 5][0] == opp:
-                prev5_loc = moves[move_idx - 5][1]
-                if prev5_loc is not None and prev5_loc != Board.PASS_LOC:
-                  pos = self.loc_to_tensor_pos(prev5_loc, board)
-                  bin_input_data[idx, pos, 13] = 1.0
-                elif prev5_loc == Board.PASS_LOC:
-                  global_input_data[idx, 4] = 1.0
 
     def addLadderFeature(loc,pos,workingMoves):
       assert(board.board[loc] == Board.BLACK or board.board[loc] == Board.WHITE)

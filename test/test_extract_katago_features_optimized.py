@@ -28,11 +28,11 @@ board_arr1 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 board_arr1 = np.array(board_arr1)
 color1 = 'b'
 
-board_arr2 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-           [0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+board_arr2 = [[0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+           [0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+           [0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+           [-1, -1, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0],
+           [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -54,7 +54,7 @@ board_arrs = np.array([board_arr1, board_arr2])
 colors = np.array([color1, color2])
 
 saved_model_dir = "katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
-model, model_variables_prefix, model_config_json = katago.get_model(saved_model_dir)
+model, model_variables_prefix, model_config_json = katago.extract_intermediate_optimized.get_model(saved_model_dir)
 
 saver = tf.train.Saver(
     max_to_keep=10000,
@@ -63,8 +63,6 @@ saver = tf.train.Saver(
 
 with tf.Session() as session:
     saver.restore(session, model_variables_prefix)
-    features1 = katago.extract_features(session, model, board_arr1, color1)
-    features2 = katago.extract_features(session, model, board_arr2, color2)
+    features = katago.extract_intermediate_optimized.extract_features_batch(session, model, board_arrs, colors)
 
-print(features1.keys())
-print('genmove_result', katago.get_xy(features1['genmove_result']), katago.get_xy(features1['genmove_result']))
+

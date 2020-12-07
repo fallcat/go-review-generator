@@ -45,6 +45,7 @@ def parse_args():
     # training config
     parser.add_argument('--split', type=str, default='train',
                         help='Which split to use to train. Could use val for debugging')
+    parser.add_argument('--portion', type=float, default=1, help='Train on only a portion of data')
     parser.add_argument('--batch-size', type=int, default=128, help='Batch size for each step')
     parser.add_argument('--num-epoch', type=int, default=10, help='Number of epochs to trian')
     parser.add_argument('--track', default=False, action='store_true', help='Use this flag to track the experiment')
@@ -96,7 +97,7 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
 
         try:
             board_features = torch.tensor(
-                katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(
+                katago.extract_features_batch(session, board_model, board, color)).to(
                 device)
         except IllegalMoveError:
             print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
@@ -130,6 +131,7 @@ def main():
     # Dataloader
     config = {'data_dir': args.data_dir,
               'device': device,
+              'portion': args.portion,
               }
     train_set = GoDataset(config, split=args.split)
     val_set = GoDataset(config, split='val')
@@ -203,8 +205,7 @@ def main():
 
                 try:
                     board_features = torch.tensor(
-                        katago.extract_intermediate_optimized.extract_features_batch(session, board_model, board, color)).to(
-                        device)
+                        katago.extract_features_batch(session, board_model, board, color)).to(device)
                 except IllegalMoveError:
                     print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
                     continue

@@ -14,6 +14,7 @@ class GoDataset(Dataset):
         self.split = split
         self.data_dir = config['data_dir']
         self.device = config['device']
+        self.portion = config['portion']
 
         self.data = []
         self.vocab_size = None
@@ -75,7 +76,7 @@ class GoDataset(Dataset):
 
     def get_pos_neg_examples(self):
         print("------ Loading positive and negative examples ------")
-        for index in range(len(self.choices['choice_indices'])):
+        for index in range(int(self.portion * len(self.choices['choice_indices']))):
             choice_indices = self.choices['choice_indices'][index]
             pos_idx = choice_indices[self.choices['answers'][index]]
             neg_idx = choice_indices[1] if self.choices['answers'][index] == 0 else choice_indices[0]
