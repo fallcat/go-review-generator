@@ -222,7 +222,7 @@ def main():
                 label = sampled_batched[1]['label'][:, None].to(device)
 
                 board_features = torch.tensor(
-                    katago.extract_intermediate.fetch_output_batch_with_bin_input(session, combine_model,
+                    katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
                                                                                       bin_input_datas,
                                                                                       global_input_datas)).to(device)
                 text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
