@@ -48,6 +48,7 @@ class GoDataset(Dataset):
         global_input_datas = hf.get('global_input_datas')
         self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
         self.data_raw['global_input_datas'] = np.array(global_input_datas)
+        hf.close()
         print('Boards shape', self.data_raw['bin_input_datas'].shape)
 
     def get_text(self):
@@ -56,6 +57,7 @@ class GoDataset(Dataset):
         hf = h5py.File(h5_path, 'r')
         comments = np.array(hf.get('comments'))
         vocab_size = int(np.array(hf.get('vocab_size')))
+        hf.close()
         print("vocab_size", vocab_size)
 
         self.data_raw['texts'] = torch.tensor(comments).to(self.device)
