@@ -280,7 +280,19 @@ def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
         assert board_arr_[row_, col_] == 1
     else:
         assert board_arr_[row_, col_] == -1
-    gs.board.play(pla, loc)
+    try:
+        gs.board.play(pla, loc)
+    except Exception as e:
+        if hasattr(e, 'message'):
+            print(e.message)
+        else:
+            print(e)
+        print("board", board_arr_)
+        print("row_", row_)
+        print("col_", col_)
+        print("color_", color_)
+        raise(e)
+
     gs.moves.append((pla, loc))
     gs.boards.append(gs.board.copy())
 

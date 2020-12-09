@@ -39,8 +39,8 @@ def parse_args():
     parser.add_argument('--katago-model-dir', type=str,
                         default='katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/',
                         help='Directory of katago model')
-    parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
-                        help='Directory to save the experiment')
+    parser.add_argument('--restore-dir', type=str, default='experiments/exp01',
+                        help='Directory to restore the experiment')
 
     # testing config
     parser.add_argument('--split', type=str, default='test',
