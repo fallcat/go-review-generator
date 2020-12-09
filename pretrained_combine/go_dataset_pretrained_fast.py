@@ -48,7 +48,7 @@ class GoDataset(Dataset):
         global_input_datas = hf.get('global_input_datas')
         self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
         self.data_raw['global_input_datas'] = np.array(global_input_datas)
-        print('Boards shape', self.data_raw['bin_input_datas'])
+        print('Boards shape', self.data_raw['bin_input_datas'].shape)
 
     def get_text(self):
         print("------ Loading text ------")
