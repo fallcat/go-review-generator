@@ -122,6 +122,10 @@ def main():
     parser = parse_args()
     args = parser.parse_args()
 
+    print('\n---argparser---:')
+    for arg in vars(args):
+        print(arg, getattr(args, arg), '\t', type(arg))
+
     torch.manual_seed(args.seed)
     if args.track:
         wandb.init(project=args.project_name)
