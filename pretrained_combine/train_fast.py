@@ -41,7 +41,7 @@ def parse_args():
                         help='Directory of katago model')
     parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
                         help='Directory to save the experiment')
-    parser.add_argument('--restore_dir', type=str, default=None, help='Directory to restore exp from')
+    parser.add_argument('--restore-dir', type=str, default=None, help='Directory to restore exp from')
 
     # training config
     parser.add_argument('--split', type=str, default='train',
