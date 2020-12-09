@@ -40,15 +40,13 @@ class GoDataset(Dataset):
 
     def get_board(self):
         print("------ Loading boards ------")
-        pkl_path = os.path.join(self.data_dir, self.split + '_.pkl')
+        pkl_path = os.path.join(self.data_dir, self.split + '_board_inputs.pkl')
 
         with open(pkl_path, 'rb') as input_file:
             board_data = pickle.load(input_file)
-        self.data_raw['rows'] = np.array([board[0] for board in board_data['boards']])
-        self.data_raw['cols'] = np.array([board[1] for board in board_data['boards']])
-        self.data_raw['colors'] = np.array([board[2] for board in board_data['boards']])
-        self.data_raw['boards'] = np.array([board[3] for board in board_data['boards']])
-        print('Boards shape', self.data_raw['boards'].shape)
+        self.data_raw['bin_input_datas'] = board_data['bin_input_datas']  # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
+        self.data_raw['global_input_datas'] = board_data['global_input_datas']
+        print('Boards shape', self.data_raw['bin_input_datas'] )
 
     def get_text(self):
         print("------ Loading text ------")
@@ -67,12 +65,11 @@ class GoDataset(Dataset):
             self.choices = pickle.load(input_file)
 
     def get_example(self, board_idx, text_idx, label):
-        row = self.data_raw['rows'][board_idx]
-        col = self.data_raw['cols'][board_idx]
-        color = self.data_raw['colors'][board_idx]
-        board = self.data_raw['boards'][board_idx]
+        bin_input_datas = self.data_raw['bin_input_datas'][board_idx]
+        global_input_datas = self.data_raw['global_input_datas'][board_idx]
         text = self.data_raw['texts'][text_idx]
-        return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label}
+        return {'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas,
+                'text': text.to(self.device), 'label': label}
 
     def get_pos_neg_examples(self):
         print("------ Loading positive and negative examples ------")
