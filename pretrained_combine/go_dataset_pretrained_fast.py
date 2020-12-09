@@ -55,7 +55,8 @@ class GoDataset(Dataset):
         h5_path = os.path.join(self.data_dir, self.split + '_text_inputs.h5')
         hf = h5py.File(h5_path, 'r')
         comments = np.array(hf.get('comments'))
-        vocab_size = int(hf.get('vocab_size'))
+        vocab_size = int(np.array(hf.get('vocab_size')))
+        print("vocab_size", vocab_size)
 
         self.data_raw['texts'] = torch.tensor(comments).to(self.device)
         self.vocab_size = vocab_size
