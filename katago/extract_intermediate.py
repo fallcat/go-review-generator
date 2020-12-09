@@ -236,7 +236,7 @@ def fetch_output_batch_with_bin_input(session, model, bin_input_datas, global_in
     model.include_history: [[1.0,1.0,1.0,1.0,1.0]]
   })
   # print("time model", time.time() - start)
-  return outputs
+  return outputs[0]
 
 
 def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
