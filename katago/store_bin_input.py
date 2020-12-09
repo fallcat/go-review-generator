@@ -5,6 +5,7 @@ sys.path.append('..')
 import os
 import pickle
 import numpy as np
+import h5py
 from katago.extract_intermediate import get_model, extract_bin_input_batch
 
 data_dir = 'data_splits_final'
@@ -27,6 +28,11 @@ for split in splits:
 
     bin_input_datas, global_input_datas = extract_bin_input_batch(model, boards, colors, rows, cols, use_tqdm=True)
 
-    pkl_path_output = os.path.join(data_dir, f'{split}_board_inputs.pkl')
-    with open(pkl_path_output, 'wb') as output_file:
-        pickle.dump({'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas}, output_file)
+    h5_path_output = os.path.join(data_dir, f'{split}_board_inputs.h5')
+
+    hf = h5py.File(h5_path_output, 'w')
+    hf.create_dataset('bin_input_datas', data=bin_input_datas)
+    hf.create_dataset('global_input_datas', data=global_input_datas)
+    hf.close()
+    # with open(h5_path_output, 'wb') as output_file:
+    #     pickle.dump({'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas}, output_file)
