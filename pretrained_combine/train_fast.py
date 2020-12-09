@@ -52,10 +52,11 @@ def parse_args():
     parser.add_argument('--track', default=False, action='store_true', help='Use this flag to track the experiment')
     parser.add_argument('--checkpoint-interval', type=int, default=50, help='Checkpoint every how many steps')
     parser.add_argument('--max-checkpoints', type=int, default=5, help='Max number of checkpoints to keep')
-    parser.add_argument('--learning-rate', type=int, default=3e-4, help='Learning rate')
+    parser.add_argument('--learning-rate', type=int, default=None, help='Learning rate')
     parser.add_argument('--scheduler-type', type=str, default='warmup', choices=['warmup'], help='Scheduler type')
     parser.add_argument('--warmup-steps', type=int, default=4000, help='Warmup steps')
     parser.add_argument('--seed', type=int, default=42, help='Manual seed for torch')
+    parser.add_argument('--xavier', default=False, action='store_true', help='Use xavier uniform init')
 
     # text config
     parser.add_argument('--emsize', type=int, default=200, help='embedding dimension for text')
@@ -121,6 +122,8 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
 def main():
     parser = parse_args()
     args = parser.parse_args()
+    if args.learning_rate is None:
+        args.learning_rate = args.d_model ** - 0.5
 
     print('\n---argparser---:')
     for arg in vars(args):
@@ -192,6 +195,8 @@ def main():
             strict=True
         )
     else:
+        if args.xavier:
+            combine_model.reset_parameters()
         epoch_restore, step_restore = 0, 0
 
 

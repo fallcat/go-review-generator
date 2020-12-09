@@ -30,6 +30,21 @@ class PretrainedCombineModel(nn.Module):
         else:
             raise ValueError('Unrecognized combine type')
 
+    def reset_parameters(self):
+        ''' Reset parameters using xavier initialiation '''
+        if self.combine == 'concat':
+            gain = nn.init.calculate_gain('linear')
+            nn.init.xavier_uniform_(self.fc.weight, gain)
+            nn.init.constant_(self.fc.bias, 0.)
+        else:
+            gain = nn.init.calculate_gain('linear')
+            nn.init.xavier_uniform_(self.fc_board.weight, gain)
+            nn.init.constant_(self.fc_board.bias, 0.)
+
+            gain = nn.init.calculate_gain('linear')
+            nn.init.xavier_uniform_(self.fc_text.weight, gain)
+            nn.init.constant_(self.fc_text.bias, 0.)
+
     def forward(self, board_embedding, text_embedding):
         """
 
