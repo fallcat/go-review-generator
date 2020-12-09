@@ -159,7 +159,7 @@ def extract_features(session, model, board_arr, color):
   return outputs
 
 
-def extract_features_batch(session, model, board_arr, color, use_tqdm=False, bin_input_datas=None, global_input_datas=None):
+def extract_features_batch(session, model, board_arr, color, use_tqdm=False):
   """
   Extract features from board (19x19 numpy array) using katago
   :param board_arr: numpy array (n x n)
@@ -211,6 +211,94 @@ def extract_features_batch(session, model, board_arr, color, use_tqdm=False, bin
   outputs, bin_input_datas, global_input_datas = get_outputs_batch(session, model, gss, rules)
 
   return outputs    #, bin_input_datas, global_input_datas
+
+
+def fetch_bin_input_batch(model, gss, rules):
+  bin_input_datas = np.zeros(shape=[len(gss)] + model.bin_input_shape, dtype=np.float32)
+  global_input_datas = np.zeros(shape=[len(gss)] + model.global_input_shape, dtype=np.float32)
+
+  for i in range(len(gss)):
+    pla = gss[i].board.pla
+    opp = Board.get_opp(pla)
+    move_idx = len(gss[i].moves)
+    model.fill_row_features_optimized(gss[i].board, pla, opp, gss[i].boards, gss[i].moves, move_idx, rules, bin_input_datas,
+                            global_input_datas, idx=i)
+
+  # print("time model", time.time() - start)
+  return bin_input_datas, global_input_datas
+
+
+def fetch_output_batch_with_bin_input(session, model, bin_input_datas, global_input_datas):
+  outputs = session.run([model.trunk_output], feed_dict={
+    model.bin_inputs: bin_input_datas,
+    model.global_inputs: global_input_datas,
+    model.symmetries: [False,False,False],
+    model.include_history: [[1.0,1.0,1.0,1.0,1.0]]
+  })
+  # print("time model", time.time() - start)
+  return outputs
+
+
+def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
+  """
+  Extract features from board (19x19 numpy array) using katago
+  :param board_arr: numpy array (n x n)
+  :return:
+  """
+  # start = time.time()
+  rules = {
+    "koRule": "KO_POSITIONAL",
+    "scoringRule": "SCORING_AREA",
+    "taxRule": "TAX_NONE",
+    "multiStoneSuicideLegal": True,
+    "hasButton": False,
+    "encorePhase": 0,
+    "passWouldEndPhase": False,
+    "whiteKomi": 7.5
+  }
+
+  def get_gss(board_arr_, color_, row_, col_):
+
+    board_size = 19
+    gs = GameState(board_size)
+
+    assert board_arr_.shape == (19, 19)
+    for i in range(19):
+      for j in range(19):
+        if i == row_ and j == col_:
+            continue
+        if board_arr_[i,j] != 0:
+          pla = (Board.BLACK if board_arr_[i, j] == 1 else Board.WHITE)
+          loc = gs.board.loc(i,j)
+          gs.board.add_unsafe(pla, loc)
+          gs.moves.append((pla, loc))
+          gs.boards.append(gs.board.copy())
+
+    pla = (Board.BLACK if color_ == 'b' or color_ == 'B' else Board.WHITE)
+    loc = gs.board.loc(row_, col_)
+    if color_ == 'b' or color_ == 'B':
+        assert board_arr_[row_, col_] == 1
+    else:
+        assert board_arr_[row_, col_] == -1
+    gs.board.play(pla, loc)
+    gs.moves.append((pla, loc))
+    gs.boards.append(gs.board.copy())
+
+    # swap because the color we enter is color of the last move instead of the current move
+    gs.board.pla = Board.WHITE if color_ == "b" or color_ == "B" else Board.BLACK
+    return gs
+
+  gss = []
+  if use_tqdm:
+    for board_arr_, color_, row_, col_ in tqdm(zip(board_arr, color, row, col)):
+      gss.append(get_gss(board_arr_, color_, row_, col_))
+  else:
+    for board_arr_, color_, row_, col_ in zip(board_arr, color, row, col):
+      gss.append(get_gss(board_arr_, color_, row_, col_))
+
+  bin_input_datas, global_input_datas = fetch_bin_input_batch(model, gss, rules)
+
+  return bin_input_datas, global_input_datas
 
 
 def get_xy(loc):
