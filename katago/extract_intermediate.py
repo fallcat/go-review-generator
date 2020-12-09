@@ -217,7 +217,7 @@ def fetch_bin_input_batch(model, gss, rules):
   bin_input_datas = np.zeros(shape=[len(gss)] + model.bin_input_shape, dtype=np.float32)
   global_input_datas = np.zeros(shape=[len(gss)] + model.global_input_shape, dtype=np.float32)
 
-  for i in range(len(gss)):
+  for i in tqdm(range(len(gss))):
     pla = gss[i].board.pla
     opp = Board.get_opp(pla)
     move_idx = len(gss[i].moves)
