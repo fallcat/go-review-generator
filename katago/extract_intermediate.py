@@ -12,6 +12,8 @@ from katago.board import Board
 from katago.model import Model
 from katago import common
 
+import time
+from tqdm import tqdm
 
 def get_model(saved_model_dir):
 
@@ -55,6 +57,7 @@ def fetch_output(session, model, gs, rules, fetches):
   opp = Board.get_opp(pla)
   move_idx = len(gs.moves)
   model.fill_row_features(gs.board,pla,opp,gs.boards,gs.moves,move_idx,rules,bin_input_data,global_input_data,idx=0)
+  # print("bin_input_data", bin_input_data.shape)
   outputs = session.run(fetches, feed_dict={
     model.bin_inputs: bin_input_data,
     model.global_inputs: global_input_data,
@@ -64,185 +67,48 @@ def fetch_output(session, model, gs, rules, fetches):
   return [output[0] for output in outputs]
 
 def get_outputs(session, model, gs, rules):
-  policy0_output = tf.nn.softmax(model.policy_output[:, :, 0])
-  policy1_output = tf.nn.softmax(model.policy_output[:, :, 1])
-  value_output = tf.nn.softmax(model.value_output)
-  scoremean_output = 20.0 * model.miscvalues_output[:, 0]
-  scorestdev_output = 20.0 * tf.math.softplus(model.miscvalues_output[:, 1])
-  lead_output = 20.0 * model.miscvalues_output[:, 2]
-  vtime_output = 150.0 * tf.math.softplus(model.miscvalues_output[:, 3])
-  ownership_output = tf.tanh(model.ownership_output)
-  scoring_output = model.scoring_output
-  futurepos_output = tf.tanh(model.futurepos_output)
-  seki_output = tf.nn.softmax(model.seki_output[:, :, :, 0:3])
-  seki_output = seki_output[:, :, :, 1] - seki_output[:, :, :, 2]
-  seki_output2 = tf.sigmoid(model.seki_output[:, :, :, 3])
-  scorebelief_output = tf.nn.softmax(model.scorebelief_output)
-  sbscale_output = model.sbscale3_layer
   trunk_output = model.trunk_output
 
-  [policy0,
-   policy1,
-   value,
-   scoremean,
-   scorestdev,
-   lead,
-   vtime,
-   ownership,
-   scoring,
-   futurepos,
-   seki,
-   seki2,
-   scorebelief,
-   sbscale,
+  [
    trunk
   ] = fetch_output(session, model, gs,rules,[
-    policy0_output,
-    policy1_output,
-    value_output,
-    scoremean_output,
-    scorestdev_output,
-    lead_output,
-    vtime_output,
-    ownership_output,
-    scoring_output,
-    futurepos_output,
-    seki_output,
-    seki_output2,
-    scorebelief_output,
-    sbscale_output,
     trunk_output
   ])
-  board = gs.board
 
-  moves_and_probs0 = []
-  for i in range(len(policy0)):
-    move = model.tensor_pos_to_loc(i,board)
-    if i == len(policy0)-1:
-      moves_and_probs0.append((Board.PASS_LOC,policy0[i]))
-    elif board.would_be_legal(board.pla,move):
-      moves_and_probs0.append((move,policy0[i]))
+  return trunk
 
-  moves_and_probs1 = []
-  for i in range(len(policy1)):
-    move = model.tensor_pos_to_loc(i,board)
-    if i == len(policy1)-1:
-      moves_and_probs1.append((Board.PASS_LOC,policy1[i]))
-    elif board.would_be_legal(board.pla,move):
-      moves_and_probs1.append((move,policy1[i]))
 
-  ownership_flat = ownership.reshape([model.pos_len * model.pos_len])
-  ownership_by_loc = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      if board.pla == Board.WHITE:
-        ownership_by_loc.append((loc,ownership_flat[pos]))
-      else:
-        ownership_by_loc.append((loc,-ownership_flat[pos]))
+def fetch_output_batch(session, model, gss, rules, fetches):
+  bin_input_datas = np.zeros(shape=[len(gss)] + model.bin_input_shape, dtype=np.float32)
+  global_input_datas = np.zeros(shape=[len(gss)] + model.global_input_shape, dtype=np.float32)
 
-  scoring_flat = scoring.reshape([model.pos_len * model.pos_len])
-  scoring_by_loc = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      if board.pla == Board.WHITE:
-        scoring_by_loc.append((loc,scoring_flat[pos]))
-      else:
-        scoring_by_loc.append((loc,-scoring_flat[pos]))
+  for i in range(len(gss)):
+    pla = gss[i].board.pla
+    opp = Board.get_opp(pla)
+    move_idx = len(gss[i].moves)
+    model.fill_row_features_optimized(gss[i].board, pla, opp, gss[i].boards, gss[i].moves, move_idx, rules, bin_input_datas,
+                            global_input_datas, idx=i)
 
-  futurepos0_flat = futurepos[:,:,0].reshape([model.pos_len * model.pos_len])
-  futurepos0_by_loc = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      if board.pla == Board.WHITE:
-        futurepos0_by_loc.append((loc,futurepos0_flat[pos]))
-      else:
-        futurepos0_by_loc.append((loc,-futurepos0_flat[pos]))
+  outputs = session.run(fetches, feed_dict={
+    model.bin_inputs: bin_input_datas,
+    model.global_inputs: global_input_datas,
+    model.symmetries: [False,False,False],
+    model.include_history: [[1.0,1.0,1.0,1.0,1.0]]
+  })
+  # print("time model", time.time() - start)
+  return outputs, bin_input_datas, global_input_datas
 
-  futurepos1_flat = futurepos[:,:,1].reshape([model.pos_len * model.pos_len])
-  futurepos1_by_loc = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      if board.pla == Board.WHITE:
-        futurepos1_by_loc.append((loc,futurepos1_flat[pos]))
-      else:
-        futurepos1_by_loc.append((loc,-futurepos1_flat[pos]))
+def get_outputs_batch(session, model, gss, rules):
+  trunk_output = model.trunk_output
 
-  seki_flat = seki.reshape([model.pos_len * model.pos_len])
-  seki_by_loc = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      if board.pla == Board.WHITE:
-        seki_by_loc.append((loc,seki_flat[pos]))
-      else:
-        seki_by_loc.append((loc,-seki_flat[pos]))
+  [
+   trunk
+  ], bin_input_datas, global_input_datas = fetch_output_batch(session, model, gss,rules,[
+    trunk_output
+  ])
 
-  seki_flat2 = seki2.reshape([model.pos_len * model.pos_len])
-  seki_by_loc2 = []
-  board = gs.board
-  for y in range(board.size):
-    for x in range(board.size):
-      loc = board.loc(x,y)
-      pos = model.loc_to_tensor_pos(loc,board)
-      seki_by_loc2.append((loc,seki_flat2[pos]))
 
-  moves_and_probs = sorted(moves_and_probs0, key=lambda moveandprob: moveandprob[1], reverse=True)
-  #Generate a random number biased small and then find the appropriate move to make
-  #Interpolate from moving uniformly to choosing from the triangular distribution
-  alpha = 1
-  beta = 1 + math.sqrt(max(0,len(gs.moves)-20))
-  r = np.random.beta(alpha,beta)
-  probsum = 0.0
-  i = 0
-  genmove_result = Board.PASS_LOC
-  while True:
-    (move,prob) = moves_and_probs[i]
-    probsum += prob
-    if i >= len(moves_and_probs)-1 or probsum > r:
-      genmove_result = move
-      break
-    i += 1
-
-  return {
-    "policy0": policy0,
-    "policy1": policy1,
-    "moves_and_probs0": moves_and_probs0,
-    "moves_and_probs1": moves_and_probs1,
-    "value": value,
-    "scoremean": scoremean,
-    "scorestdev": scorestdev,
-    "lead": lead,
-    "vtime": vtime,
-    "ownership": ownership,
-    "ownership_by_loc": ownership_by_loc,
-    "scoring": scoring,
-    "scoring_by_loc": scoring_by_loc,
-    "futurepos": futurepos,
-    "futurepos0_by_loc": futurepos0_by_loc,
-    "futurepos1_by_loc": futurepos1_by_loc,
-    "seki": seki,
-    "seki_by_loc": seki_by_loc,
-    "seki2": seki2,
-    "seki_by_loc2": seki_by_loc2,
-    "scorebelief": scorebelief,
-    "sbscale": sbscale,
-    "genmove_result": genmove_result,
-    "trunk": trunk
-  }
+  return trunk, bin_input_datas, global_input_datas
 
 
 def extract_features(session, model, board_arr, color):
@@ -251,49 +117,7 @@ def extract_features(session, model, board_arr, color):
   :param board_arr: numpy array (n x n)
   :return:
   """
-
-
-  known_commands = [
-    'boardsize',
-    'clear_board',
-    'showboard',
-    'komi',
-    'play',
-    'genmove',
-    'quit',
-    'name',
-    'version',
-    'known_command',
-    'list_commands',
-    'protocol_version',
-    'gogui-analyze_commands',
-    'setrule',
-    'policy',
-    'policy1',
-    'logpolicy',
-    'ownership',
-    'scoring',
-    'futurepos0',
-    'futurepos1',
-    'seki',
-    'seki2',
-    'scorebelief',
-    'passalive',
-  ]
-  known_analyze_commands = [
-    'gfx/Policy/policy',
-    'gfx/Policy1/policy1',
-    'gfx/LogPolicy/logpolicy',
-    'gfx/Ownership/ownership',
-    'gfx/Scoring/scoring',
-    'gfx/FuturePos0/futurepos0',
-    'gfx/FuturePos1/futurepos1',
-    'gfx/Seki/seki',
-    'gfx/Seki2/seki2',
-    'gfx/ScoreBelief/scorebelief',
-    'gfx/PassAlive/passalive',
-  ]
-
+  # start = time.time()
   board_size = 19
   gs = GameState(board_size)
 
@@ -308,94 +132,6 @@ def extract_features(session, model, board_arr, color):
     "whiteKomi": 7.5
   }
 
-  layerdict = dict(model.outputs_by_layer)
-  weightdict = dict()
-  for v in tf.trainable_variables():
-    weightdict[v.name] = v
-
-  layer_command_lookup = dict()
-
-  def add_extra_board_size_visualizations(layer_name, layer, normalization_div):
-    assert (layer.shape[1].value == board_size)
-    assert (layer.shape[2].value == board_size)
-    num_channels = layer.shape[3].value
-    for i in range(num_channels):
-      command_name = layer_name + "-" + str(i)
-      command_name = command_name.replace("/", ":")
-      known_commands.append(command_name)
-      known_analyze_commands.append("gfx/" + command_name + "/" + command_name)
-      layer_command_lookup[command_name.lower()] = (layer, i, normalization_div)
-
-  def add_layer_visualizations(layer_name, normalization_div):
-    if layer_name in layerdict:
-      layer = layerdict[layer_name]
-      add_extra_board_size_visualizations(layer_name, layer, normalization_div)
-
-  add_layer_visualizations("conv1", normalization_div=6)
-  add_layer_visualizations("rconv1", normalization_div=14)
-  add_layer_visualizations("rconv2", normalization_div=20)
-  add_layer_visualizations("rconv3", normalization_div=26)
-  add_layer_visualizations("rconv4", normalization_div=36)
-  add_layer_visualizations("rconv5", normalization_div=40)
-  add_layer_visualizations("rconv6", normalization_div=40)
-  add_layer_visualizations("rconv7", normalization_div=44)
-  add_layer_visualizations("rconv7/conv1a", normalization_div=12)
-  add_layer_visualizations("rconv7/conv1b", normalization_div=12)
-  add_layer_visualizations("rconv8", normalization_div=48)
-  add_layer_visualizations("rconv9", normalization_div=52)
-  add_layer_visualizations("rconv10", normalization_div=55)
-  add_layer_visualizations("rconv11", normalization_div=58)
-  add_layer_visualizations("rconv11/conv1a", normalization_div=12)
-  add_layer_visualizations("rconv11/conv1b", normalization_div=12)
-  add_layer_visualizations("rconv12", normalization_div=58)
-  add_layer_visualizations("rconv13", normalization_div=64)
-  add_layer_visualizations("rconv14", normalization_div=66)
-  add_layer_visualizations("g1", normalization_div=6)
-  add_layer_visualizations("p1", normalization_div=2)
-  add_layer_visualizations("v1", normalization_div=4)
-
-  input_feature_command_lookup = dict()
-
-  def add_input_feature_visualizations(layer_name, feature_idx, normalization_div):
-    command_name = layer_name
-    command_name = command_name.replace("/", ":")
-    known_commands.append(command_name)
-    known_analyze_commands.append("gfx/" + command_name + "/" + command_name)
-    input_feature_command_lookup[command_name] = (feature_idx, normalization_div)
-
-  for i in range(model.bin_input_shape[1]):
-    add_input_feature_visualizations("input-" + str(i), i, normalization_div=1)
-
-  linear = tf.cumsum(tf.ones([19], dtype=tf.float32), axis=0, exclusive=True) / 18.0
-  color_calibration = tf.stack(axis=0, values=[
-    linear,
-    linear * 0.5,
-    linear * 0.2,
-    linear * 0.1,
-    linear * 0.05,
-    linear * 0.02,
-    linear * 0.01,
-    -linear,
-    -linear * 0.5,
-    -linear * 0.2,
-    -linear * 0.1,
-    -linear * 0.05,
-    -linear * 0.02,
-    -linear * 0.01,
-    linear * 2 - 1,
-    tf.zeros([19], dtype=tf.float32),
-    linear,
-    -linear,
-    tf.zeros([19], dtype=tf.float32)
-  ])
-  add_extra_board_size_visualizations("colorcalibration", tf.reshape(color_calibration, [1, 19, 19, 1]),
-                                      normalization_div=None)
-
-  # pla = (Board.BLACK if command[1] == "B" or command[1] == "b" else Board.WHITE)
-  # loc = parse_coord(command[2], gs.board)
-  # gs.board.play(pla, loc)
-  # gs.moves.append((pla, loc))
-  # gs.boards.append(gs.board.copy())
 
   def add_board_arr(board_arr):
     assert board_arr.shape == (19, 19)
@@ -412,17 +148,171 @@ def extract_features(session, model, board_arr, color):
 
   # swap because the color we enter is color of the last move instead of the current move
   gs.board.pla = Board.WHITE if color == "b" or color == "B" else Board.BLACK
+  # print("time add board", time.time() - start)
+  # start = time.time()
+
 
   # "genmove"
   outputs = get_outputs(session, model, gs, rules)
+  # print("time get outputs", time.time() - start)
 
-  new_outputs = {}
+  return outputs
 
-  for k in outputs.keys():
-    if 'loc' not in k and 'moves_and_probs' not in k:
-      new_outputs[k] = outputs[k]
 
-  return new_outputs
+def extract_features_batch(session, model, board_arr, color, use_tqdm=False):
+  """
+  Extract features from board (19x19 numpy array) using katago
+  :param board_arr: numpy array (n x n)
+  :return:
+  """
+  # start = time.time()
+  rules = {
+    "koRule": "KO_POSITIONAL",
+    "scoringRule": "SCORING_AREA",
+    "taxRule": "TAX_NONE",
+    "multiStoneSuicideLegal": True,
+    "hasButton": False,
+    "encorePhase": 0,
+    "passWouldEndPhase": False,
+    "whiteKomi": 7.5
+  }
+
+  def get_gss(board_arr_, color_):
+
+    board_size = 19
+    gs = GameState(board_size)
+
+    def add_board_arr(board_arr_, gs):
+      assert board_arr_.shape == (19, 19)
+      for i in range(19):
+        for j in range(19):
+          if board_arr_[i,j] != 0:
+            pla = (Board.BLACK if board_arr_[i, j] == 1 else Board.WHITE)
+            loc = gs.board.loc(i,j)
+            gs.board.add_unsafe(pla, loc)
+            gs.moves.append((pla, loc))
+            gs.boards.append(gs.board.copy())
+      return gs
+
+    gs = add_board_arr(board_arr_, gs)
+
+    # swap because the color we enter is color of the last move instead of the current move
+    gs.board.pla = Board.WHITE if color_ == "b" or color_ == "B" else Board.BLACK
+    return gs
+
+  gss = []
+  if use_tqdm:
+    for board_arr_, color_ in tqdm(zip(board_arr, color)):
+      gss.append(get_gss(board_arr_, color_))
+  else:
+    for board_arr_, color_ in zip(board_arr, color):
+      gss.append(get_gss(board_arr_, color_))
+
+  outputs, bin_input_datas, global_input_datas = get_outputs_batch(session, model, gss, rules)
+
+  return outputs    #, bin_input_datas, global_input_datas
+
+
+def fetch_bin_input_batch(model, gss, rules):
+  bin_input_datas = np.zeros(shape=[len(gss)] + model.bin_input_shape, dtype=np.float32)
+  global_input_datas = np.zeros(shape=[len(gss)] + model.global_input_shape, dtype=np.float32)
+
+  for i in tqdm(range(len(gss))):
+    pla = gss[i].board.pla
+    opp = Board.get_opp(pla)
+    move_idx = len(gss[i].moves)
+    model.fill_row_features_optimized(gss[i].board, pla, opp, gss[i].boards, gss[i].moves, move_idx, rules, bin_input_datas,
+                            global_input_datas, idx=i)
+
+  # print("time model", time.time() - start)
+  return bin_input_datas, global_input_datas
+
+
+def fetch_output_batch_with_bin_input(session, model, bin_input_datas, global_input_datas):
+  outputs = session.run([model.trunk_output], feed_dict={
+    model.bin_inputs: bin_input_datas,
+    model.global_inputs: global_input_datas,
+    model.symmetries: [False,False,False],
+    model.include_history: [[1.0,1.0,1.0,1.0,1.0]]
+  })
+  # print("time model", time.time() - start)
+  return outputs[0]
+
+
+def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
+  """
+  Extract features from board (19x19 numpy array) using katago
+  :param board_arr: numpy array (n x n)
+  :return:
+  """
+  # start = time.time()
+  rules = {
+    "koRule": "KO_POSITIONAL",
+    "scoringRule": "SCORING_AREA",
+    "taxRule": "TAX_NONE",
+    "multiStoneSuicideLegal": True,
+    "hasButton": False,
+    "encorePhase": 0,
+    "passWouldEndPhase": False,
+    "whiteKomi": 7.5
+  }
+
+  def get_gss(board_arr_, color_, row_, col_):
+
+    board_size = 19
+    gs = GameState(board_size)
+
+    assert board_arr_.shape == (19, 19)
+    for i in range(19):
+      for j in range(19):
+        if i == row_ and j == col_:
+            continue
+        if board_arr_[i,j] != 0:
+          pla = (Board.BLACK if board_arr_[i, j] == 1 else Board.WHITE)
+          loc = gs.board.loc(i,j)
+          gs.board.add_unsafe(pla, loc)
+          gs.moves.append((pla, loc))
+          gs.boards.append(gs.board.copy())
+
+    pla = (Board.BLACK if color_ == 'b' or color_ == 'B' else Board.WHITE)
+    loc = gs.board.loc(row_, col_)
+    if color_ == 'b' or color_ == 'B':
+        assert board_arr_[row_, col_] == 1
+    else:
+        assert board_arr_[row_, col_] == -1
+    try:
+        gs.board.add_unsafe(pla, loc)
+    except Exception as e:
+        if hasattr(e, 'message'):
+            print(e.message)
+        else:
+            print(e)
+        print("board", board_arr_)
+        print("row_", row_)
+        print("col_", col_)
+        print("color_", color_)
+        raise(e)
+
+    gs.moves.append((pla, loc))
+    gs.boards.append(gs.board.copy())
+
+    # swap because the color we enter is color of the last move instead of the current move
+    gs.board.pla = Board.WHITE if color_ == "b" or color_ == "B" else Board.BLACK
+    return gs
+
+  gss = []
+  print("saving to game state")
+  if use_tqdm:
+    for board_arr_, color_, row_, col_ in tqdm(zip(board_arr, color, row, col)):
+      gss.append(get_gss(board_arr_, color_, row_, col_))
+  else:
+    for board_arr_, color_, row_, col_ in zip(board_arr, color, row, col):
+      gss.append(get_gss(board_arr_, color_, row_, col_))
+
+  print("fetching bin inputs")
+  bin_input_datas, global_input_datas = fetch_bin_input_batch(model, gss, rules)
+
+  return bin_input_datas, global_input_datas
 
 
 def get_xy(loc):

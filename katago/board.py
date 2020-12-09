@@ -5,6 +5,7 @@ Borrowed from KataGo https://github.com/lightvector/KataGo
 import sys
 import random
 import numpy as np
+import time
 
 class IllegalMoveError(ValueError):
   pass
@@ -99,6 +100,9 @@ class Board:
   def num_liberties(self,loc):
     if self.board[loc] == Board.EMPTY or self.board[loc] == Board.WALL:
       return 0
+    return self.group_liberty_count[self.group_head[loc]]
+
+  def num_liberties_batch(self,loc):
     return self.group_liberty_count[self.group_head[loc]]
 
   def is_simple_eye(self,pla,loc):
@@ -1101,6 +1105,15 @@ class Board:
           if result[loc] == Board.EMPTY:
             result[loc] = self.board[loc]
 
+  def calculateArea_optimized(self, result, nonPassAliveStones, safeBigTerritories, unsafeBigTerritories, isMultiStoneSuicideLegal, inner_board):
+    for i in range(self.arrsize):
+      result[i] = Board.EMPTY
+    self.calculateAreaForPla_optimized(Board.BLACK,safeBigTerritories,unsafeBigTerritories,isMultiStoneSuicideLegal,result)
+    self.calculateAreaForPla_optimized(Board.WHITE,safeBigTerritories,unsafeBigTerritories,isMultiStoneSuicideLegal,result)
+
+    if nonPassAliveStones:
+      result[result == Board.EMPTY] = self.board[result == Board.EMPTY]
+
   def calculateNonDameTouchingArea(self, result, keepTerritories, keepStones, isMultiStoneSuicideLegal):
     #First, just compute basic area.
     basicArea = [Board.EMPTY for i in range(self.arrsize)]
@@ -1353,6 +1366,221 @@ class Board:
           cur = nextEmptyOrOpp[cur]
           if cur == head:
             break
+
+  def calculateAreaForPla_optimized(self, pla, safeBigTerritories, unsafeBigTerritories, isMultiStoneSuicideLegal, result):
+    opp = self.get_opp(pla)
+    #First compute all empty-or-opp regions
+
+    #For each loc, if it's empty or opp, the head of the region
+    regionHeadByLoc = [Board.PASS_LOC] * self.arrsize
+    #For each loc, if it's empty or opp, the next empty or opp belonging to the same region
+    nextEmptyOrOpp = [Board.PASS_LOC] * self.arrsize
+    #Does this border a pla group that has been marked as not pass alive?
+    bordersNonPassAlivePlaByHead = [False] * self.arrsize
+
+    #A list for each region head, indicating which pla group heads the region is vital for.
+    #A region is vital for a pla group if all its spaces are adjacent to that pla group.
+    #All lists are concatenated together, the most we can have is bounded by (MAX_LEN * MAX_LEN+1) / 2
+    #independent regions, each one vital for at most 4 pla groups, add some extra just in case.
+    maxRegions = (self.size * self.size + 1)//2 + 1
+    vitalForPlaHeadsListsMaxLen = maxRegions * 4
+    vitalForPlaHeadsLists = [-1] * vitalForPlaHeadsListsMaxLen
+    vitalForPlaHeadsListsTotal = 0
+
+    #A list of region heads
+    numRegions = 0
+    regionHeads = [-1] * maxRegions
+    #Start indices and list lengths in vitalForPlaHeadsLists
+    vitalStart = [-1] * maxRegions
+    vitalLen = [-1] * maxRegions
+    #For each region, are there 0, 1, or 2+ spaces of that region not bordering any pla?
+    numInternalSpacesMax2 = [-1] * maxRegions
+    containsOpp = [False] * maxRegions
+
+    def isAdjacentToPlaHead(loc,plaHead):
+      for i in range(4):
+        adj = loc + self.adj[i]
+        if self.board[adj] == pla and self.group_head[adj] == plaHead:
+          return True
+      return False
+
+    #Recursively trace maximal non-pla regions of the board and record their properties and join them into a
+    #linked list through nextEmptyOrOpp.
+    #Takes as input the location serving as the head, the tip node of the linked list so far, the next loc, and the
+    #numeric index of the region
+    #Returns the loc serving as the current tip node ("tailTarget") of the linked list.
+    def buildRegion(head, tailTarget, loc, regionIdx):
+      #Already traced this location, skip
+      if regionHeadByLoc[loc] != Board.PASS_LOC:
+        return tailTarget
+      regionHeadByLoc[loc] = head
+
+      #First, filter out any pla heads it turns out we're not vital for because we're not adjacent to them
+      #In the case where suicide is allowed, we only do this filtering on intersections that are actually empty
+      if isMultiStoneSuicideLegal or self.board[loc] == Board.EMPTY:
+        vStart = vitalStart[regionIdx]
+        oldVLen = vitalLen[regionIdx]
+        newVLen = 0
+        for i in range(oldVLen):
+          if isAdjacentToPlaHead(loc,vitalForPlaHeadsLists[vStart+i]):
+            vitalForPlaHeadsLists[vStart+newVLen] = vitalForPlaHeadsLists[vStart+i]
+            newVLen += 1
+        vitalLen[regionIdx] = newVLen
+
+      #Determine if this point is internal, unless we already have many internal points
+      if numInternalSpacesMax2[regionIdx] < 2:
+        isInternal = True
+        for i in range(4):
+          adj = loc + self.adj[i]
+          if self.board[adj] == pla:
+            isInternal = False
+            break
+        if isInternal:
+          numInternalSpacesMax2[regionIdx] += 1
+
+      if self.board[loc] == opp:
+        containsOpp[regionIdx] = True
+
+      #Next, recurse everywhere
+      nextEmptyOrOpp[loc] = tailTarget
+      nextTailTarget = loc
+      for i in range(4):
+        adj = loc + self.adj[i]
+        if self.board[adj] == Board.EMPTY or self.board[adj] == opp:
+          nextTailTarget = buildRegion(head,nextTailTarget,adj,regionIdx)
+
+      return nextTailTarget
+
+    atLeastOnePla = False
+    for y in range(self.size):
+      for x in range(self.size):
+        loc = self.loc(x,y)
+
+        if regionHeadByLoc[loc] != Board.PASS_LOC:
+          continue
+        if self.board[loc] != Board.EMPTY:
+          atLeastOnePla |= (self.board[loc] == pla)
+          continue
+
+        regionIdx = numRegions
+        numRegions += 1
+        assert(numRegions <= maxRegions)
+
+        #Initialize region metadata
+        head = loc
+        regionHeads[regionIdx] = head
+        vitalStart[regionIdx] = vitalForPlaHeadsListsTotal
+        vitalLen[regionIdx] = 0
+        numInternalSpacesMax2[regionIdx] = 0
+        containsOpp[regionIdx] = False
+
+        #Fill in all adjacent pla heads as vital, which will get filtered during buildRegion
+        vStart = vitalStart[regionIdx]
+        assert(vStart + 4 <= vitalForPlaHeadsListsMaxLen)
+        initialVLen = 0
+        for i in range(4):
+          adj = loc + self.adj[i]
+          if self.board[adj] == pla:
+            plaHead = self.group_head[adj]
+            alreadyPresent = False
+            for j in range(initialVLen):
+              if vitalForPlaHeadsLists[vStart+j] == plaHead:
+                alreadyPresent = True
+                break
+
+            if not alreadyPresent:
+              vitalForPlaHeadsLists[vStart+initialVLen] = plaHead
+              initialVLen += 1
+
+        vitalLen[regionIdx] = initialVLen
+
+        tailTarget = buildRegion(head,head,loc,regionIdx)
+        nextEmptyOrOpp[head] = tailTarget
+
+        vitalForPlaHeadsListsTotal += vitalLen[regionIdx]
+
+    #Also accumulate all player heads
+    #Accumulate with duplicates
+    allPlaHeads = self.group_head[self.board == pla]
+
+    #Filter duplicates
+    allPlaHeads = list(set(allPlaHeads))
+    numPlaHeads = len(allPlaHeads)
+
+    plaHasBeenKilled = [False] * numPlaHeads
+
+    #Now, we can begin the benson iteration
+    vitalCountByPlaHead = [0] * self.arrsize
+    while(True):
+      #Zero out vital liberties by head
+      for i in range(numPlaHeads):
+        vitalCountByPlaHead[allPlaHeads[i]] = 0
+
+      #Walk all regions that are still bordered only by pass-alive stuff and accumulate a vital liberty to each pla it is vital for.
+      for i in range(numRegions):
+        head = regionHeads[i]
+        if bordersNonPassAlivePlaByHead[head]:
+          continue
+
+        vStart = vitalStart[i]
+        vLen = vitalLen[i]
+        for j in range(vLen):
+          plaHead = vitalForPlaHeadsLists[vStart+j]
+          vitalCountByPlaHead[plaHead] += 1
+
+      #Walk all player heads and kill them if they haven't accumulated at least 2 vital liberties
+      killedAnything = False
+      for i in range(numPlaHeads):
+        #Already killed - skip
+        if plaHasBeenKilled[i]:
+          continue
+
+        plaHead = allPlaHeads[i]
+        if vitalCountByPlaHead[plaHead] < 2:
+          plaHasBeenKilled[i] = True
+          killedAnything = True
+          #Walk the pla chain to update bordering regions
+          cur = plaHead
+          while(True):
+            for j in range(4):
+              adj = cur + self.adj[j]
+              if self.board[adj] == Board.EMPTY or self.board[adj] == opp:
+                bordersNonPassAlivePlaByHead[regionHeadByLoc[adj]] = True
+
+            cur = self.group_next[cur]
+
+            if cur == plaHead:
+              break
+
+      if not killedAnything:
+        break
+
+    #Mark result with pass-alive groups
+    for i in range(numPlaHeads):
+      if not plaHasBeenKilled[i]:
+        plaHead = allPlaHeads[i]
+        cur = plaHead
+        while(True):
+          result[cur] = pla
+          cur = self.group_next[cur]
+          if cur == plaHead:
+            break
+
+    #Mark result with territory
+    for i in range(numRegions):
+      head = regionHeads[i]
+      shouldMark = numInternalSpacesMax2[i] <= 1 and atLeastOnePla and not bordersNonPassAlivePlaByHead[head]
+      shouldMark = shouldMark or (safeBigTerritories and atLeastOnePla and not containsOpp[i] and not bordersNonPassAlivePlaByHead[head])
+      shouldMark = shouldMark or (unsafeBigTerritories and atLeastOnePla and not containsOpp[i])
+
+      if shouldMark:
+        cur = head
+        while(True):
+          result[cur] = pla
+          cur = nextEmptyOrOpp[cur]
+          if cur == head:
+            break
+
 
   def calculateNonDameTouchingAreaHelper(self, basicArea, result):
     queue = [Board.PASS_LOC for i in range(self.arrsize)]
