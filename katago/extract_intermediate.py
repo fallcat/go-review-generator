@@ -301,6 +301,7 @@ def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
     return gs
 
   gss = []
+  print("saving to game state")
   if use_tqdm:
     for board_arr_, color_, row_, col_ in tqdm(zip(board_arr, color, row, col)):
       gss.append(get_gss(board_arr_, color_, row_, col_))
@@ -308,6 +309,7 @@ def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
     for board_arr_, color_, row_, col_ in zip(board_arr, color, row, col):
       gss.append(get_gss(board_arr_, color_, row_, col_))
 
+  print("fetching bin inputs")
   bin_input_datas, global_input_datas = fetch_bin_input_batch(model, gss, rules)
 
   return bin_input_datas, global_input_datas
