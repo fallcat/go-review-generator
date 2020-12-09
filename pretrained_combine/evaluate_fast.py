@@ -79,7 +79,7 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, ba
         label = sampled_batched[1]['label'][:, None].to(device)
 
         board_features = torch.tensor(
-            katago.extract_intermediate.fetch_output_batch_with_bin_input(session, combine_model,
+            katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
                                                                           bin_input_datas,
                                                                           global_input_datas)).to(device)
 
