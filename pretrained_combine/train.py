@@ -27,7 +27,7 @@ from transformer_encoder import get_comment_features
 from transformer_encoder.model import *
 
 from pretrained_combine.model import PretrainedCombineModel
-from pretrained_combine.utils import WarmupLRSchedule, checkpoint
+from pretrained_combine.utils import WarmupLRSchedule, checkpoint, restore
 
 
 def parse_args():
@@ -41,6 +41,7 @@ def parse_args():
                         help='Directory of katago model')
     parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
                         help='Directory to save the experiment')
+    parser.add_argument('--restore_dir', type=str, default=None, help='Directory to restore exp from')
 
     # training config
     parser.add_argument('--split', type=str, default='train',
@@ -180,6 +181,16 @@ def main():
                'optimizer': optimizer,
                'lr_scheduler': lr_scheduler}
 
+    if args.restore_dir is not None:
+        epoch_restore, step_restore = restore(
+            args.restore_dir,
+            modules,
+            num_checkpoints=args.average_checkpoints,
+            map_location=device.type,
+            strict=True
+        )
+    else:
+        epoch_restore, step_restore = 0, 0
 
 
     # training
@@ -190,12 +201,17 @@ def main():
         loss_accumulate = 0
         count_accumulate = 0
         val_loss_history = []
-        epochs = tqdm(range(args.num_epoch))
+        epochs = tqdm(range(epoch_restore, args.num_epoch))
         num_batches = int(len(train_set) / args.batch_size)
         for epoch in epochs:
             epochs.set_description(f'Epoch {epoch}')
             batches = tqdm(enumerate(train_dataloader, 1))
             for i_batch, sampled_batched in batches:
+                if i_batch < step_restore:
+                    continue
+                elif i_batch == step_restore:
+                    step_restore = 0
+                    continue
                 step += 1
                 batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
                 color = sampled_batched[1]['color']

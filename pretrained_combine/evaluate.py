@@ -2,20 +2,10 @@ import sys
 sys.path.append('.')
 sys.path.append('..')
 
-import time
-import pdb
-import os
-import shutil
-import wandb
 import argparse
 
 from tqdm import tqdm
 
-import torch
-from torch import nn, optim
-from torch.optim.lr_scheduler import LambdaLR, ExponentialLR
-
-import numpy as np
 import tensorflow as tf
 import katago
 from katago.board import IllegalMoveError
@@ -27,7 +17,7 @@ from transformer_encoder import get_comment_features
 from transformer_encoder.model import *
 
 from pretrained_combine.model import PretrainedCombineModel
-from pretrained_combine.utils import WarmupLRSchedule, checkpoint
+from pretrained_combine.utils import restore
 
 
 def parse_args():
@@ -74,13 +64,12 @@ def parse_args():
     return parser
 
 
-def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device):
+def evaluate(session, combine_model, board_model, text_model, val_dataloader, batch_size, device):
     print('------ evaluate ------')
     combine_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     num_batches = int(len(val_dataloader.dataset) / batch_size)
     total_correct = 0
-    total_loss = 0
     total_total = 0
     for i_batch, sampled_batched in batches:
         batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
@@ -99,18 +88,15 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
 
         text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
         logits = combine_model(board_features, text_features)
-        loss = criterion(logits, label.type_as(logits))
-        total_loss += loss
         pred = logits >= 0.5
         correct = sum(pred == label)
         total = label.shape[0]
         total_correct += correct
         total_total += total
     accuracy = float(total_correct) / total_total
-    loss_avg = float(total_loss) / total_total
     combine_model.train()
-    print(f'Validation accuracy: {accuracy}, validation loss: {loss_avg}')
-    return accuracy, loss_avg
+    print(f'Validation accuracy: {accuracy}')
+    return accuracy
 
 
 def main():
@@ -151,93 +137,25 @@ def main():
     if torch.cuda.is_available():
         combine_model = combine_model.cuda()
 
-    if args.track:
-        wandb.watch(combine_model)
-    criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(combine_model.parameters(), args.learning_rate)
-    if args.scheduler_type == 'warmup':
-        lr_scheduler = LambdaLR(
-            optimizer,
-            WarmupLRSchedule(
-                args.warmup_steps
-            )
-        )
-    else:
-        raise ValueError('Unknown scheduler type: ', args.scheduler_type)
+    restore_modules = {'combine_model': combine_model}
 
-    modules = {'combine_model': combine_model,
-               'optimizer': optimizer,
-               'lr_scheduler': lr_scheduler}
+    epoch, step = restore(
+        args.restore_dir,
+        restore_modules,
+        num_checkpoints=args.average_checkpoints,
+        map_location=device.type,
+        strict=True
+    )
 
-
-
-    # training
-    combine_model.train()
     with tf.Session() as session:
         saver.restore(session, model_variables_prefix)
-        step = 0
-        loss_accumulate = 0
-        count_accumulate = 0
-        val_loss_history = []
-        epochs = tqdm(range(args.num_epoch))
-        num_batches = int(len(train_set) / args.batch_size)
-        for epoch in epochs:
-            epochs.set_description(f'Epoch {epoch}')
-            batches = tqdm(enumerate(train_dataloader, 1))
-            for i_batch, sampled_batched in batches:
-                step += 1
-                batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
-                color = sampled_batched[1]['color']
-                board = sampled_batched[1]['board'].numpy()
-                text = sampled_batched[1]['text']
-                label = sampled_batched[1]['label'][:, None].to(device)
+        test_acc = evaluate(session, combine_model, board_model, text_model, test_dataloader,
+                                    args.batch_size, device)
 
-                try:
-                    board_features = torch.tensor(
-                        katago.extract_features_batch(session, board_model, board, color)).to(device)
-                except IllegalMoveError:
-                    print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-                    continue
+        print(f"Test accuracy: {test_acc}")
 
-                text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), args.batch_size, device)).to(device)
 
-                logits = combine_model(board_features, text_features)
-                loss = criterion(logits, label.type_as(logits))
-                loss_accumulate += loss
-                count_accumulate += sampled_batched[1]['label'].shape[0]
-
-                # optimize
-                loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-                lr_scheduler.step()
-
-                if i_batch % args.checkpoint_interval == 0:
-                    checkpoint_path = checkpoint(epoch, i_batch, modules, args.experiment_dir, max_checkpoints=args.max_checkpoints)
-
-                    loss_avg = float(loss_accumulate) / count_accumulate
-                    loss_accumulate = 0
-                    count_accumulate = 0
-                    if args.track:
-                        wandb.log({'Train Loss': loss_avg,
-                                   'lr': lr_scheduler.get_lr(),
-                                   'epoch': epoch,
-                                   'step': step})
-            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
-            val_loss_history.append(val_loss)
-            if val_loss >= max(val_loss_history):  # best
-                dirname = os.path.dirname(checkpoint_path)
-                basename = os.path.basename(checkpoint_path)
-                best_checkpoint_path = os.path.join(dirname, f'best_{basename}')
-                shutil.copy2(checkpoint_path, best_checkpoint_path)
-            if args.track:
-                wandb.log({'Val Accuracy': val_acc,
-                           'Val Loss': val_loss,
-                           'Train Loss': loss_avg,
-                           'lr': lr_scheduler.get_lr(),
-                           'epoch': epoch,
-                           'step': step})
-        print("----------Finished training----------")
+        print("----------Finished evaluating----------")
 
 
 if __name__ == '__main__':

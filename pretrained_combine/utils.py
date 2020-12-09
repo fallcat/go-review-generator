@@ -2,6 +2,7 @@ import torch
 import tempfile
 import os
 import shutil
+import torch.nn as nn
 
 class WarmupLRSchedule(object):
     '''
@@ -20,6 +21,56 @@ class WarmupLRSchedule(object):
 
         step = max(1, step)
         return min(step ** -0.5, step * self.warmup_steps ** -1.5)
+
+
+def restore(path, modules, num_checkpoints=1, map_location=None, strict=True):
+    '''
+    Restore from a checkpoint
+    Args:
+        path - path to restore from
+        modules - a dict of name to object that supports the method load_state_dict
+    '''
+    if not os.path.isfile(path):
+        print(f'Cannot find checkpoint: {path}')
+        return 0, 0
+
+    print(f'Loading checkpoint {path}')
+    state = torch.load(path, map_location=map_location)
+
+    if 'model' in modules:
+        model_state = state['model']
+        root, ext = os.path.splitext(path)
+
+        # strip any trailing digits
+        base = root.rstrip(''.join(str(i) for i in range(10)))
+
+        # determine the integer representation of the trailing digits
+        idx = root[len(base):]
+        start_idx = int(idx) if idx else 0
+
+        count = 1
+        for idx in range(1, num_checkpoints):
+            # use the digits as the start index for loading subsequent checkpoints for averaging
+            path = f'{base}{start_idx + idx}{ext}'
+            if not os.path.isfile(path):
+                print(f'Cannot find checkpoint: {path} Skipping it!')
+                continue
+
+            print(f'Averaging with checkpoint {path}')
+            previous_state = torch.load(path, map_location=map_location)
+            previous_model_state = previous_state['model']
+            for name, param in model_state.items():
+                param.mul_(count).add_(previous_model_state[name]).div_(count + 1)
+
+            count += 1
+
+    for name, obj in modules.items():
+        if isinstance(obj, nn.Module):
+            obj.load_state_dict(state[name], strict=strict)
+        else:
+            obj.load_state_dict(state[name])
+
+    return state['epoch'], state['step']
 
 
 def checkpoint(epoch, step, modules, directory, filename='checkpoint.pt', max_checkpoints=5):
