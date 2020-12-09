@@ -17,7 +17,7 @@ from transformer_encoder import get_comment_features
 from transformer_encoder.model import *
 
 from pretrained_combine.model import PretrainedCombineModel
-from pretrained_combine.utils import restore
+from pretrained_combine.utils import restore, compute_metrics_accumulate, compute_metrics_total
 
 
 def parse_args():
@@ -69,8 +69,11 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, ba
     combine_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     num_batches = int(len(val_dataloader.dataset) / batch_size)
-    total_correct = 0
-    total_total = 0
+    tps = 0
+    tns = 0
+    fps = 0
+    fns = 0
+    ns = 0
     for i_batch, sampled_batched in batches:
         batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
         bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
@@ -86,14 +89,15 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, ba
         text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
         logits = combine_model(board_features, text_features)
         pred = logits >= 0.5
-        correct = sum(pred == label)
-        total = label.shape[0]
-        total_correct += correct
-        total_total += total
-    accuracy = float(total_correct) / total_total
-    combine_model.train()
-    print(f'Validation accuracy: {accuracy}')
-    return accuracy
+        tp, tn, fp, fn, n = compute_metrics_accumulate(pred, label)
+        tps += tp
+        tns += tn
+        fps += fp
+        fns += fn
+        ns += n
+
+    metrics = compute_metrics_total(tps, tns, fps, fns, ns)
+    return metrics
 
 
 def main():
@@ -146,11 +150,8 @@ def main():
 
     with tf.Session() as session:
         saver.restore(session, model_variables_prefix)
-        test_acc = evaluate(session, combine_model, board_model, text_model, test_dataloader,
+        test_metrics = evaluate(session, combine_model, board_model, text_model, test_dataloader,
                                     args.batch_size, device)
-
-        print(f"Test accuracy: {test_acc}")
-
 
         print("----------Finished evaluating----------")
 
