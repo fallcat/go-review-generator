@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import collections
 from transformer_encoder.model import *
 from transformer_encoder import data_process
+import h5py
 
 
 class GoDataset(Dataset):
@@ -40,13 +41,14 @@ class GoDataset(Dataset):
 
     def get_board(self):
         print("------ Loading boards ------")
-        pkl_path = os.path.join(self.data_dir, self.split + '_board_inputs.pkl')
+        h5_path = os.path.join(self.data_dir, self.split + '_board_inputs.h5')
 
-        with open(pkl_path, 'rb') as input_file:
-            board_data = pickle.load(input_file)
-        self.data_raw['bin_input_datas'] = board_data['bin_input_datas']  # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
-        self.data_raw['global_input_datas'] = board_data['global_input_datas']
-        print('Boards shape', self.data_raw['bin_input_datas'] )
+        hf = h5py.File(h5_path, 'r')
+        bin_input_datas = hf.get('bin_input_datas')
+        global_input_datas = hf.get('global_input_datas')
+        self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
+        self.data_raw['global_input_datas'] = np.array(global_input_datas)
+        print('Boards shape', self.data_raw['bin_input_datas'])
 
     def get_text(self):
         print("------ Loading text ------")
