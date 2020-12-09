@@ -43,26 +43,25 @@ class GoDataset(Dataset):
         print("------ Loading boards ------")
         h5_path = os.path.join(self.data_dir, self.split + '_board_inputs.h5')
 
-        hf = h5py.File(h5_path, 'r')
-        bin_input_datas = hf.get('bin_input_datas')
-        global_input_datas = hf.get('global_input_datas')
-        self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
-        self.data_raw['global_input_datas'] = np.array(global_input_datas)
-        hf.close()
-        print('Boards shape', self.data_raw['bin_input_datas'].shape)
+        with h5py.File(h5_path, 'r') as hf:
+            bin_input_datas = hf.get('bin_input_datas')
+            global_input_datas = hf.get('global_input_datas')
+            self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
+            self.data_raw['global_input_datas'] = np.array(global_input_datas)
+            print('Boards shape', self.data_raw['bin_input_datas'].shape)
 
     def get_text(self):
         print("------ Loading text ------")
         h5_path = os.path.join(self.data_dir, self.split + '_text_inputs.h5')
-        hf = h5py.File(h5_path, 'r')
-        comments = np.array(hf.get('comments'))
-        vocab_size = int(np.array(hf.get('vocab_size')))
-        hf.close()
-        print("vocab_size", vocab_size)
+        with h5py.File(h5_path, 'r') as hf:
+            comments = np.array(hf.get('comments'))
+            vocab_size = int(np.array(hf.get('vocab_size')))
+            hf.close()
+            print("vocab_size", vocab_size)
 
-        self.data_raw['texts'] = torch.tensor(comments).to(self.device)
-        self.vocab_size = vocab_size
-        print('Texts shape', self.data_raw['texts'].shape)
+            self.data_raw['texts'] = torch.tensor(comments).to(self.device)
+            self.vocab_size = vocab_size
+            print('Texts shape', self.data_raw['texts'].shape)
 
     def get_choices(self):
         print("------ Loading choices ------")

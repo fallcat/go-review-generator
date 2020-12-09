@@ -218,6 +218,8 @@ def main():
                 batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
                 bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
                 global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
+                print('bin_input_datas', bin_input_datas.shape)
+                print('global_input_datas', global_input_datas.shape)
                 text = sampled_batched[1]['text']
                 label = sampled_batched[1]['label'][:, None].to(device)
 
@@ -225,6 +227,7 @@ def main():
                     katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
                                                                                       bin_input_datas,
                                                                                       global_input_datas)).to(device)
+                print('board_features', board_features.shape)
                 text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
                                                                                            args.batch_size,
                                                                                            device)).to(device)
