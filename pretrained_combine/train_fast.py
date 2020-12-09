@@ -91,20 +91,18 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     total_total = 0
     for i_batch, sampled_batched in batches:
         batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
-        color = sampled_batched[1]['color']
-        board = sampled_batched[1]['board'].numpy()
+        bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
+        global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
         text = sampled_batched[1]['text']
         label = sampled_batched[1]['label'][:, None].to(device)
 
-        try:
-            board_features = torch.tensor(
-                katago.extract_features_batch(session, board_model, board, color)).to(
-                device)
-        except IllegalMoveError:
-            print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-            continue
+        board_features = torch.tensor(
+            katago.extract_intermediate.fetch_output_batch_with_bin_input(session, combine_model,
+                                                                          bin_input_datas,
+                                                                          global_input_datas)).to(device)
 
-        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
+                                                                                   batch_size, device)).to(device)
         logits = combine_model(board_features, text_features)
         loss = criterion(logits, label.type_as(logits))
         total_loss += loss
