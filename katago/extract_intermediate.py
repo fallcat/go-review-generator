@@ -281,7 +281,7 @@ def extract_bin_input_batch(model, board_arr, color, row, col, use_tqdm=False):
     else:
         assert board_arr_[row_, col_] == -1
     try:
-        gs.board.play(pla, loc)
+        gs.board.add_unsafe(pla, loc)
     except Exception as e:
         if hasattr(e, 'message'):
             print(e.message)
