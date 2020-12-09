@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import collections
 import h5py
 import numpy as np
+import torch
 
 
 class GoDataset(Dataset):
