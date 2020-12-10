@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument('--dropout', type=float, default=0.2, help='the dropout value')
     parser.add_argument('--sentence-len', type=int, default=100, help='sentence len')
     parser.add_argument('--text-hidden-dim', type=int, default=200, help='text hidden dim')
+    parser.add_argument('--finetune-text', default=False, action='store_true', help='finetune text')
 
     # combine model config
     parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'dot', 'attn'],
@@ -82,9 +83,12 @@ def parse_args():
     return parser
 
 
-def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device):
+def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device,
+             finetune_text=False):
     print('------ evaluate ------')
     combine_model.eval()
+    if finetune_text:
+        text_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     num_batches = int(len(val_dataloader.dataset) / batch_size)
     total_correct = 0
@@ -115,6 +119,8 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     accuracy = float(total_correct) / total_total
     loss_avg = float(total_loss) / total_total
     combine_model.train()
+    if finetune_text:
+        text_model.train()
     print(f'Validation accuracy: {accuracy}, validation loss: {loss_avg}')
     return accuracy, loss_avg
 
@@ -158,8 +164,9 @@ def main():
     text_model = TransformerModel_extractFeature(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout)
     if torch.cuda.is_available():
         text_model = text_model.cuda()
-    for param in text_model.parameters():
-        param.requires_grad = False  # freeze params in the pretrained model
+    if not args.finetune_text:
+        for param in text_model.parameters():
+            param.requires_grad = False  # freeze params in the pretrained model
 
     # Construct the model
     combine_model = PretrainedCombineModel(combine=args.combine,d_model=args.d_model, dropout_p=args.dropout_p,
@@ -182,9 +189,15 @@ def main():
     else:
         raise ValueError('Unknown scheduler type: ', args.scheduler_type)
 
-    modules = {'combine_model': combine_model,
-               'optimizer': optimizer,
-               'lr_scheduler': lr_scheduler}
+    if args.finetune_text:
+        modules = {'combine_model': combine_model,
+                   'optimizer': optimizer,
+                   'lr_scheduler': lr_scheduler}
+    else:
+        modules = {'text_model': text_model,
+                   'combine_model': combine_model,
+                   'optimizer': optimizer,
+                   'lr_scheduler': lr_scheduler}
 
     if args.restore_dir is not None:
         epoch_restore, step_restore = restore(
@@ -256,7 +269,7 @@ def main():
                                    'lr': lr_scheduler.get_lr(),
                                    'epoch': epoch,
                                    'step': step})
-            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
+            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device, args.finetune_text)
             val_loss_history.append(val_loss)
             if val_loss >= max(val_loss_history):  # best
                 dirname = os.path.dirname(checkpoint_path)
