@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--track', default=False, action='store_true', help='Use this flag to track the experiment')
     parser.add_argument('--checkpoint-interval', type=int, default=50, help='Checkpoint every how many steps')
     parser.add_argument('--max-checkpoints', type=int, default=5, help='Max number of checkpoints to keep')
-    parser.add_argument('--learning-rate', type=int, default=None, help='Learning rate')
+    parser.add_argument('--learning-rate', type=float, default=None, help='Learning rate')
     parser.add_argument('--scheduler-type', type=str, default='warmup', choices=['warmup'], help='Scheduler type')
     parser.add_argument('--warmup-steps', type=int, default=4000, help='Warmup steps')
     parser.add_argument('--seed', type=int, default=42, help='Manual seed for torch')
