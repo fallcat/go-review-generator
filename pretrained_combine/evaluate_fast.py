@@ -150,6 +150,8 @@ def main():
         strict=True
     )
 
+    print(f"Restore epoch {epoch} and step {step}")
+
     with tf.Session() as session:
         saver.restore(session, model_variables_prefix)
         test_metrics = evaluate(session, combine_model, board_model, text_model, test_dataloader,
