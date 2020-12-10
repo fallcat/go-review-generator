@@ -179,7 +179,11 @@ def main():
     if args.track:
         wandb.watch(combine_model)
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(combine_model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
+    if args.finetune_text:
+        optimizer = optim.Adam(list(combine_model.parameters()) + list(text_model.parameters()), args.learning_rate,
+                               weight_decay=args.weight_decay)
+    else:
+        optimizer = optim.Adam(combine_model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
     if args.scheduler_type == 'warmup':
         lr_scheduler = LambdaLR(
             optimizer,
