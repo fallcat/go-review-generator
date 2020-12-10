@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--text-hidden-dim', type=int, default=200, help='text hidden dim')
 
     # combine model config
-    parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'dot', 'attn'],
+    parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'concat_ffn', 'dot', 'attn'],
                         help='Hidden dim size for the combine model')
     parser.add_argument('--d-model', type=int, default=512, help='Hidden dim size for the combine model')
     parser.add_argument('--combine-num-heads', type=int, default=4,
