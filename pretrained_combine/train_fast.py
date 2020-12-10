@@ -20,7 +20,7 @@ import tensorflow as tf
 import katago
 from katago.board import IllegalMoveError
 
-from pretrained_combine.go_dataset_pretrained import GoDataset
+from pretrained_combine.go_dataset_pretrained_fast import GoDataset
 from torch.utils.data import DataLoader
 
 from transformer_encoder import get_comment_features
@@ -41,7 +41,7 @@ def parse_args():
                         help='Directory of katago model')
     parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
                         help='Directory to save the experiment')
-    parser.add_argument('--restore_dir', type=str, default=None, help='Directory to restore exp from')
+    parser.add_argument('--restore-dir', type=str, default=None, help='Directory to restore exp from')
 
     # training config
     parser.add_argument('--split', type=str, default='train',
@@ -91,20 +91,18 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     total_total = 0
     for i_batch, sampled_batched in batches:
         batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
-        color = sampled_batched[1]['color']
-        board = sampled_batched[1]['board'].numpy()
+        bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
+        global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
         text = sampled_batched[1]['text']
         label = sampled_batched[1]['label'][:, None].to(device)
 
-        try:
-            board_features = torch.tensor(
-                katago.extract_features_batch(session, board_model, board, color)).to(
-                device)
-        except IllegalMoveError:
-            print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-            continue
+        board_features = torch.tensor(
+            katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
+                                                                          bin_input_datas,
+                                                                          global_input_datas)).to(device)
 
-        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
+                                                                                   batch_size, device)).to(device)
         logits = combine_model(board_features, text_features)
         loss = criterion(logits, label.type_as(logits))
         total_loss += loss
@@ -123,6 +121,10 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
 def main():
     parser = parse_args()
     args = parser.parse_args()
+
+    print('\n---argparser---:')
+    for arg in vars(args):
+        print(arg, getattr(args, arg), '\t', type(arg))
 
     torch.manual_seed(args.seed)
     if args.track:
@@ -214,19 +216,18 @@ def main():
                     continue
                 step += 1
                 batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
-                color = sampled_batched[1]['color']
-                board = sampled_batched[1]['board'].numpy()
+                bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
+                global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
                 text = sampled_batched[1]['text']
                 label = sampled_batched[1]['label'][:, None].to(device)
 
-                try:
-                    board_features = torch.tensor(
-                        katago.extract_features_batch(session, board_model, board, color)).to(device)
-                except IllegalMoveError:
-                    print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-                    continue
-
-                text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), args.batch_size, device)).to(device)
+                board_features = torch.tensor(
+                    katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
+                                                                                      bin_input_datas,
+                                                                                      global_input_datas)).to(device)
+                text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
+                                                                                           args.batch_size,
+                                                                                           device)).to(device)
 
                 logits = combine_model(board_features, text_features)
                 loss = criterion(logits, label.type_as(logits))
