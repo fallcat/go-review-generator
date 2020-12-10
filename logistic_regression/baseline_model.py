@@ -198,6 +198,23 @@ def automatic_grid_search(X, y, X_test, y_test, test_set=False):
 
 	return clf.score(X_test,y_test), clf.best_params_, clf.best_estimator_, clf.best_score_
 
+def main(params, X, y, X_test, y_test):
+
+	start = time.time()
+	print('starting logistic regression with best paramaters on the whole dataset..')
+
+	best_C, best_penalty, best_solver = params['C'], params['penalty'], params['solver']
+
+	clf = LogisticRegression(C=best_C, penalty=best_penalty, solver=best_solver, random_state=0, max_iter=10000)
+	clf.fit(X,y)
+	accuracy = clf.score(X_test, y_test)
+
+	logistic_time = time.time() - start
+	print('end logistic regression..')
+	print('Time elapsed for logistic regression on the whole dataset:\t%s\n' % (time.strftime("%H:%M:%S", time.gmtime(logistic_time))))	
+
+	return accuracy
+
 ################
 ### HELPER FUNCS
 ################
@@ -237,16 +254,23 @@ if __name__ == '__main__':
 	print('\n---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---')
 	X_comb, y_comb = get_examples([train_board_feature_matrix,val_board_feature_matrix], [train_text_feature_matrix,val_text_feature_matrix], [train_choices_fname,val_choices_fname])
 
-	print('\n---Logistic Regression Auto Grid In Progress---')
+	# print('\n---Logistic Regression Auto Grid In Progress---')
 	# train_accuracy, train_best_params, train_best_estimator, train_best_score  = automatic_grid_search(X_train[:2000], y_train[:2000], X_train, y_train)
 	# val_accuracy, val_best_params, val_best_estimator, val_best_score  = automatic_grid_search(X_train[:2000], y_train[:2000], X_val, y_val)
-	test_accuracy, test_best_params, test_best_estimator, test_best_score  = automatic_grid_search(X_comb[:20000], y_comb[:20000], X_test, y_test, True)
+	# test_accuracy, test_best_params, test_best_estimator, test_best_score  = automatic_grid_search(X_comb[:20000], y_comb[:20000], X_test, y_test, True)
 
-	## display results
-	print('\n---Results---')
-	print(f'test_accuracy: {test_accuracy}\ttest_best_score: {test_best_score}')
-	for title, params, acc in zip(['*test*'], [test_best_params],[test_accuracy]):
-		print(f'{title}\tbest_model: {params}\taccuracy: {acc}')
+	# ## display results
+	# print('\n---Results---')
+	# print(f'test_accuracy: {test_accuracy}\ttest_best_score: {test_best_score}')
+	# for title, params, acc in zip(['*test*'], [test_best_params],[test_accuracy]):
+	# 	print(f'{title}\tbest_model: {params}\taccuracy: {acc}')
+
+	print('\n found best parameters from automatic_grid_search:')
+	best_params = {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+	print(f"C': {'10'} 'penalty': {'l2'} 'solver': {'liblinear'}")
+	test_accuracy = main(best_params, X_comb, y_comb, X_test, y_test)
+
+	print(f'test_accuracy: {test_accuracy}')
 	
 	main_time = time.time() - start
 	print('Time elapsed in main:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(main_time))))

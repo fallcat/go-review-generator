@@ -1,0 +1,63 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes script: logistic_regression/baseline_model_pretrained_numpy.py, simple test, nlpgpu01 cuda4,5,6,7, new optimized method, C parameters only, 20K examples, max_iter=10K. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+
+---train fnames---
+len: 8
+data/X_train.pkl
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+data/y_train.pkl
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---vocab fnames---
+len: 1
+data/vocab.32000
+
+
+WARNING:tensorflow:From ./katago/model.py:1135: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.where in 2.0, which has the same broadcast rule as np.where
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained_numpy.py:275: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained_numpy.py:282: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+
+---VALIDATION EXAMPLES---
+Time elapsed making board feature matrix:	00:18:16
+true_comments.shape: (20676, 100)	neg_comments.shape: (20676, 100, 128) (19,19,128) --> (20676, 361,128).T
+Time elapsed making text feature matrix:	00:00:00
+board_feat_arr.shape: (20676, 361)
+len(pos_text_feat_arr): 20676	len(neg_text_feat_arr): 20676
+cur fname: data/val.choices.txt
+
+X num_examples: (41352, 461)	y num_examples: (41352,)

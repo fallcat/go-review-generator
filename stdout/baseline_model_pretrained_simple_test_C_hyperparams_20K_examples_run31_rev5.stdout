@@ -1,0 +1,80 @@
+line 32 device: cuda
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes script: baseline_model_pretrained.py, nlpgpu01 7, C parameters only. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---vocab fnames---
+len: 1
+data/vocab.32000
+
+
+WARNING:tensorflow:From ./katago/model.py:1135: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.where in 2.0, which has the same broadcast rule as np.where
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained.py:283: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained.py:290: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+
+---VALIDATION EXAMPLES---
+BEFORE X_tensor.is_cuda:  False
+line 108 device: cuda
+AFTER X_tensor.is_cuda:  True
+type(tensor board_feature_matrix): <class 'torch.Tensor'>
+tensor board_feature_matrix.shape: torch.Size([20676, 361])
+Time elapsed making board feature matrix:	00:18:10
+type(true_comments), type(neg_comments):  <class 'torch.Tensor'> <class 'torch.Tensor'>
+type(true_comments), type(neg_comments):  <class 'torch.Tensor'> <class 'torch.Tensor'>
+true_comments.shape: torch.Size([20676, 100])	neg_comments.shape: torch.Size([20676, 100])
+Time elapsed making text feature matrix:	00:00:00
+board_feat_arr.shape: torch.Size([20676, 361])
+len(pos_text_feat_arr): 20676	len(neg_text_feat_arr): 20676
+cur fname: data/val.choices.txt
+
+<class 'torch.Tensor'>
+torch.Size([361])
+<class 'torch.Tensor'>
+torch.Size([100])
+a.is_cuda: True
+b.is_cuda: True
+Traceback (most recent call last):
+  File "logistic_regression/baseline_model_pretrained.py", line 305, in <module>
+    pos_val_text_feature_matrix, neg_val_text_feature_matrix  = create_pretrained_text_feature_matrix(val_choices_pkl_fname, val_text_fname, vocab_fname)
+  File "logistic_regression/baseline_model_pretrained.py", line 169, in get_examples
+    print(f'b.is_cuda: {b.is_cuda}')
+RuntimeError: Expected object of scalar type Float but got scalar type Long for sequence element 1 in sequence argument at position #1 'tensors'
