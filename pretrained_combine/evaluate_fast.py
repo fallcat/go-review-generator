@@ -96,6 +96,8 @@ def evaluate(session, combine_model, board_model, text_model, val_dataloader, ba
         fns += fn
         ns += n
 
+    print(f'tp:\t{tps},\ttn:\t{tns}')
+    print(f'fn:\t{tps},\tfp:\t{tns}')
     metrics = compute_metrics_total(tps, tns, fps, fns, ns)
     return metrics
 
