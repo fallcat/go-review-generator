@@ -1,4 +1,4 @@
-# Go Review Matcher
+# MyoshuGo - Review-Board Matching for Go Games
 
 Files are organized as follows:
 1. Preprocessing of text: `preprocess`.
