@@ -57,6 +57,7 @@ def parse_args():
     parser.add_argument('--warmup-steps', type=int, default=4000, help='Warmup steps')
     parser.add_argument('--seed', type=int, default=42, help='Manual seed for torch')
     parser.add_argument('--xavier', default=False, action='store_true', help='Use xavier uniform init')
+    parser.add_argument('--weight-decay', type=float, default=0, help='L2 regularization to reduce overfitting')
 
     # text config
     parser.add_argument('--emsize', type=int, default=200, help='embedding dimension for text')
@@ -178,7 +179,7 @@ def main():
     if args.track:
         wandb.watch(combine_model)
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(combine_model.parameters(), args.learning_rate)
+    optimizer = optim.Adam(combine_model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
     if args.scheduler_type == 'warmup':
         lr_scheduler = LambdaLR(
             optimizer,
