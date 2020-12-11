@@ -4,6 +4,31 @@ import os
 import shutil
 import torch.nn as nn
 
+
+def compute_metrics_accumulate(pred, label):
+    n = pred.shape[0]
+    tp = sum((pred == 1) * (label == 1))
+    tn = sum((pred == 0) * (label == 0))
+    fp = sum((pred == 1) * (label == 0))
+    fn = sum((pred == 0) * (label == 1))
+    return tp, tn, fp, fn, n
+
+
+def compute_metrics_total(tp, tn, fp, fn, n):
+    accuracy = (tp + tn) / n
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * precision * recall / (precision + recall)
+    print(f'Accuracy: {accuracy}')
+    print(f'Precision: {precision}')
+    print(f'Recall: {recall}')
+    print(f'F1: {f1}')
+    return {'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1}
+
+
 class WarmupLRSchedule(object):
     '''
     Implement the learning rate schedule from Attention is All You Need

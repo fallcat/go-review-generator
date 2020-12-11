@@ -125,7 +125,7 @@ import torch
 import katago
 import tensorflow as tf
 
-saved_model_dir = "katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/"
+saved_model_dir = "katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/"
 board_model, model_variables_prefix, model_config_json = katago.get_model(saved_model_dir)
 
 saver = tf.train.Saver(
