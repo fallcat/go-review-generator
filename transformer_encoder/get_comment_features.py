@@ -13,7 +13,7 @@ import os
 import pickle
 
 
-def load_model():
+def load_model(ntokens, emsize, nhead, nhid, nlayers, dropout, device):
   '''
   batch_size = 64
   ntokens = vocab_size # the size of vocabulary
@@ -25,7 +25,7 @@ def load_model():
   '''
   model = TransformerModel_extractFeature(ntokens, emsize, nhead, nhid, nlayers, dropout).to(device)
   
-  save_path = "./model_weights"
+  save_path = "transformer_encoder/model_weights"
   if not torch.cuda.is_available():
     model.load_state_dict(torch.load(save_path,map_location=lambda storage, loc: storage))   #load to CPU
   else:
@@ -71,8 +71,6 @@ if __name__ == "__main__":
   val_comments,val_labels,vocab_size = prepare_comment(data_dir+"val.choices.pkl", data_dir+"val_comments.tok.32000.txt", data_dir+"vocab.32000", cutoff=5)
   val_comments = val_comments.to(device)
 
-
-
   batch_size = 64
   ntokens = vocab_size # the size of vocabulary
   emsize = 200 # embedding dimension
@@ -81,7 +79,7 @@ if __name__ == "__main__":
   nhead = 2 # the number of heads in the multiheadattention models
   dropout = 0.2 # the dropout value
 
-  model = load_model()
+  model = load_model(ntokens, emsize, nhead, nhid, nlayers, dropout, device)
   #Here we only load the first batch as an example
   example = val_comments[:batch_size]
   example_features = extract_comment_features(model, example, batch_size, device)
