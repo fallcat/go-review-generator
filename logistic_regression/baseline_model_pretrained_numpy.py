@@ -18,15 +18,17 @@ from sklearn.model_selection import GridSearchCV ##internal cross-validation
 from sklearn.metrics import accuracy_score, precision_score,recall_score, f1_score, fbeta_score, confusion_matrix, roc_curve, auc, classification_report
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import katago
-from transformer_encoder import get_comment_features
+from transformer_encoder.get_comment_features import *
 from transformer_encoder.model import *
 from transformer_encoder.data_process import *
 from transformer_encoder import data_process
 import os
 import torch
+import h5py
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,27 +39,34 @@ nltk.download('stopwords')
 nltk.download('punkt')
 ## TODO: Try glove or pymagnitude word embedding, sum the average of the word embeddings
 ## TODO: Try pretrained text embeddings from transformer encoder
-## TODO: CTRL-F exit()
+## TODO: CTRL-F, exit()
+## TODO: Line 407
 
 ## argparser
 parser = argparse.ArgumentParser(description='Processing list of files...')
 parser.add_argument('-notes', required=True, help='run id notes to be printed out at the top of the argparser to help distinguish from other runs.')
 parser.add_argument('-outDir', required=True, help='directory where output files will be written to')
 parser.add_argument('-dataDir', required=True, help='directory where data files will be read in from')
+parser.add_argument('-h5Dir', required=True, help='weiqius directory')
 args = parser.parse_args()
 
 ## global variables
-outdir, dataDir = args.outDir, args.dataDir
+outdir, dataDir, h5Dir = args.outDir, args.dataDir, args.h5Dir
 train_fnames = sorted([join(dataDir, f) for f in listdir(dataDir) if 'train' in f])
 val_fnames = sorted([join(dataDir, f) for f in listdir(dataDir) if 'val' in f])
 test_fnames = sorted([join(dataDir, f) for f in listdir(dataDir) if 'test' in f])
 vocab_fnames = sorted([join(dataDir, f) for f in listdir(dataDir) if 'vocab' in f])
-text_model = load_model()
+h5_fnames = sorted([join(h5Dir, f) for f in listdir(h5Dir) if '_board_inputs' in f])
 
 ## sanity checks
 print('\n---argparser---:')
 for arg in vars(args):
 	print(arg, getattr(args, arg), '\t', type(arg))
+
+print('\n---weiqius fnames---')
+print(f'len: {len(h5_fnames)}')
+for f in h5_fnames:
+	print(f)
 
 print('\n---train fnames---')
 print(f'len: {len(train_fnames)}')
@@ -81,15 +90,16 @@ for f in vocab_fnames:
 print('\n')
 
 ## data filenames
-train_boards_fname, train_text_fname, train_choices_fname, train_choices_pkl_fname = train_fnames[2], train_fnames[3], train_fnames[1], train_fnames[0]
-val_boards_fname, val_text_fname, val_choices_fname, val_choices_pkl_fname = val_fnames[2], val_fnames[3], val_fnames[1], val_fnames[0]
-test_boards_fname, test_text_fname, test_choices_fname, test_choices_pkl_fname = test_fnames[2], test_fnames[3], test_fnames[1], test_fnames[0]
+train_boards_fname, train_text_fname, train_choices_fname, train_choices_pkl_fname = train_fnames[2], train_fnames[4], train_fnames[1], train_fnames[0]
+val_boards_fname, val_text_fname, val_choices_fname, val_choices_pkl_fname = val_fnames[2], val_fnames[4], val_fnames[1], val_fnames[0]
+test_boards_fname, test_text_fname, test_choices_fname, test_choices_pkl_fname = test_fnames[2], test_fnames[4], test_fnames[1], test_fnames[0]
+train_h5_fname, val_h5_fname, test_h5_fname = h5_fnames[1], h5_fnames[2], h5_fnames[0]
 vocab_fname = vocab_fnames[0]
 
 def get_training_sets(session, model):
 
 		print('\n---TRAIN EXAMPLES---')
-		train_board_feature_matrix = create_pretrained_board_feature_matrix(session, model, train_boards_fname) ## 'numpy.ndarray', <class 'sklearn.feature_extraction._dict_vectorizer.DictVectorizer'>
+		train_board_feature_matrix = create_pretrained_board_feature_matrix('train', session, model, train_boards_fname, train_h5_fname) ## 'numpy.ndarray', <class 'sklearn.feature_extraction._dict_vectorizer.DictVectorizer'>
 		pos_train_text_feature_matrix, neg_train_text_feature_matrix  = create_pretrained_text_feature_matrix(train_choices_pkl_fname, train_text_fname, vocab_fname) ## <class 'numpy.ndarray'>
 		X_train, y_train = get_examples([train_board_feature_matrix], [pos_train_text_feature_matrix], [neg_train_text_feature_matrix], [train_choices_fname]) ##<class 'numpy.ndarray'>, <class 'numpy.ndarray'>
 		file_obja, file_objb = open('data_pretrained_numpy/X_train.pkl', 'wb'), open('data_pretrained_numpy/y_train.pkl', 'wb')
@@ -98,7 +108,7 @@ def get_training_sets(session, model):
 
 
 		print('\n---VALIDATION EXAMPLES---')
-		val_board_feature_matrix = create_pretrained_board_feature_matrix(session, model, val_boards_fname)
+		val_board_feature_matrix = create_pretrained_board_feature_matrix('val', session, model, val_boards_fname, val_h5_fname)
 		pos_val_text_feature_matrix, neg_val_text_feature_matrix  = create_pretrained_text_feature_matrix(val_choices_pkl_fname, val_text_fname, vocab_fname)
 		X_val,  y_val = get_examples([val_board_feature_matrix], [pos_val_text_feature_matrix], [neg_val_text_feature_matrix], [val_choices_fname])
 		file_objc, file_objd = open('data_pretrained_numpy/X_val.pkl', 'wb'), open('data_pretrained_numpy/y_val.pkl', 'wb')
@@ -107,7 +117,7 @@ def get_training_sets(session, model):
 
 
 		print('\n---TEST EXAMPLES---')
-		test_board_feature_matrix = create_pretrained_board_feature_matrix(session, model, test_boards_fname)
+		test_board_feature_matrix = create_pretrained_board_feature_matrix('test', session, model, test_boards_fname, test_h5_fname)
 		pos_test_text_feature_matrix, neg_test_text_feature_matrix  = create_pretrained_text_feature_matrix(test_choices_pkl_fname, test_text_fname, vocab_fname)
 		X_test,  y_test = get_examples([test_board_feature_matrix], [pos_test_text_feature_matrix], [neg_test_text_feature_matrix], [test_choices_fname])
 		file_obje, file_objf = open('data_pretrained_numpy/X_test.pkl', 'wb'), open('data_pretrained_numpy/y_test.pkl', 'wb')
@@ -124,30 +134,52 @@ def get_training_sets(session, model):
 		return X_train, y_train, X_val, y_val, X_comb, y_comb, X_test, y_test
 
 
-def create_pretrained_board_feature_matrix(session, model, fname):
+def create_pretrained_board_feature_matrix(split, session, model, fname, h5_fname):
 
 	start = time.time()
 	# dict_keys(['boards', 'steps'])
-	X = DictVectorizer(dtype=np.float32, sparse=False)
-	## generators for faster processing, lazy loading for memory efficiency
-	board_data, color_data = next(lazy_pickle_load(fname)), next(lazy_pickle_load(fname)) 
-	batched_boards, batched_colors = np.array([x[3] for x in board_data]), np.array([x[2] for x in color_data])
-	## TODO: katago.extract_intermediate.fetch_output_batch_with_bin_input
-	katago_boards = katago.extract_intermediate_optimized.extract_features_batch(session, model, batched_boards, batched_colors) ## katago_board['trunk'] is <class 'numpy.ndarray'> shape (19,19,256)
-	# print(f'katago_boards.shape: {katago_boards.shape}') ## katago_boards.shape: (20676, 19, 19, 128)
-	flattened_katago_boards = np.mean(katago_boards,axis=-1).reshape(katago_boards.shape[0], katago_boards.shape[1]*katago_boards.shape[2]) 
-	# print(f'flattened_katago_boards.shape: {flattened_katago_boards.shape}') ##flattened_katago_boards.shape: (20676, 361)
-	temp = [dict(zip(range(len(board)),board)) for board in flattened_katago_boards]
+	# X = DictVectorizer(dtype=np.float32, sparse=False)
 
-	X.fit(temp)
-	X_nparr = X.transform(temp)
+	print(f'h5_fname: {h5_fname}')
+
+	# generators for faster processing, lazy loading for memory efficiency
+	with h5py.File(h5_fname, 'r') as hf:
+		bin_input_datas = hf.get('bin_input_datas')
+		global_input_datas = hf.get('global_input_datas')
+		bin_input_datas = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
+		global_input_datas = np.array(global_input_datas)
+		print("Board's shape: ", bin_input_datas.shape) # Boards shape (209566, 361, 22)
+		bin_iter = iter(bin_input_datas[:(bin_input_datas.shape[0]/10)])
+		global_iter = iter(global_input_datas[:(bin_input_datas.shape[0]/10)])
+
+
+	# board_data, color_data = next(lazy_pickle_load(fname)), next(lazy_pickle_load(fname)) 
+	# batched_boards, batched_colors = np.array([x[3] for x in board_data]), np.array([x[2] for x in color_data])
+	all_katago_boards = []
+	for bin_batch, global_batch in progress_in_board_batches('current board', bin_iter, global_iter, bin_input_datas.shape[0],128):
+		batched_katago_boards = katago.extract_intermediate.fetch_output_batch_with_bin_input(session, model, bin_batch, global_batch)
+		all_katago_boards.extend(batched_katago_boards)
+	# katago_boards = katago.extract_intermediate_optimized.extract_features_batch(session, model, batched_boards, batched_colors) ## katago_board['trunk'] is <class 'numpy.ndarray'> shape (19,19,256)
+	# print(f'len(all_katago_boards): {len(all_katago_boards)} \ntype(all_katago_boards[0]): {type(all_katago_boards[0])} \ntype(all_katago_boards): {type(all_katago_boards)}') ## katago_boards.shape: (20676, 19, 19, 128)
+	bin_input_datas = None
+	global_input_datas = None
+	all_katago_boards = np.array(all_katago_boards) #np.concatenate(all_katago_boards,axis=0)
+	flattened_all_katago_boards = all_katago_boards.reshape(all_katago_boards.shape[0],-1,all_katago_boards.shape[3]) # flattened_all_katago_boards: (20676, 361, 128)
+	# print(f'type(flattened_all_katago_boards): {type(flattened_all_katago_boards)} \nflattened_all_katago_boards: {flattened_all_katago_boards.shape}')
+	# flattened_katago_boards = np.mean(katago_boards,axis=-1).reshape(katago_boards.shape[0], katago_boards.shape[1]*katago_boards.shape[2]) 
+	# print(f'flattened_katago_boards.shape: {flattened_katago_boards.shape}') ##flattened_katago_boards.shape: (20676, 361)
+	# temp = [dict(zip(range(len(board)),board)) for board in flattened_all_katago_boards]
+
+	# X.fit(temp)
+	# X_nparr = X.transform(temp)
 
 	feature_time = time.time() - start
-	print(f'type(board_feature_matrix): {type(X_nparr)}') ##<class 'numpy.ndarray'> (20676, 361)
-	print(f'board_feature_matrix.shape: {X_nparr.shape}')
+	# print(f'type(board_feature_matrix): {type(X_nparr)}') ##<class 'numpy.ndarray'> (20676, 361)
+	# print(f'board_feature_matrix.shape: {X_nparr.shape}')
 	print('Time elapsed making board feature matrix:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(feature_time))))
+	
 
-	return X_nparr#X_tensor
+	return flattened_all_katago_boards #X_nparr
 
 
 def create_pretrained_text_feature_matrix(choices_pkl_fname, text_fname, vocab_fname, cutoff=5):
@@ -155,53 +187,82 @@ def create_pretrained_text_feature_matrix(choices_pkl_fname, text_fname, vocab_f
 	start = time.time()
 
 	comments, labels, vocab_size = prepare_comment(choices_pkl_fname, text_fname, vocab_fname, cutoff)
-	comments, labels = comments.numpy(), np.array(labels)#comments.to(self.device), np.array(labels) ##<class 'torch.Tensor'>, <class 'numpy.ndarray'>
-	true_comments, neg_comments = comments[np.where(labels==1)], comments[np.where(labels==0)]
+	labels = np.array(labels)[:(len(labels)/10)] #torch.tensor()
+	true_temp_comments, neg_temp_comments = comments[np.where(labels==1)], comments[np.where(labels==0)]
+	true_comments, neg_comments = true_temp_comments[:(true_temp_comments.shape[0]/10)], neg_temp_comments[:(neg_temp_comments.shape[0]/10)]
+	true_temp_comments, neg_temp_comments = None, None
+	# print(f'type(true_comments): {type(true_comments)}\ttype(neg_comments): {type(neg_comments)}')
+	# print(f'true_comments.shape: {true_comments.shape}\tneg_comments.shape: {neg_comments.shape}')
+
+	batch_size = 128
+	ntokens = vocab_size # the size of vocabulary
+	emsize = 200 # embedding dimension
+	nhid = 100 # the dimension of the feedforward network pretrained_combine in nn.TransformerEncoder
+	nlayers = 2 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
+	nhead = 2 # the number of heads in the multiheadattention models
+	dropout = 0.2 # the dropout value
+
+	text_model = load_model(ntokens, emsize, nhead, nhid, nlayers, dropout, device)
 
 	## TODO: model = load_model()
 	## TODO: example_features = extract_comment_features(text_model, example, batch_size, device)
-	# batch_size = 86
-	# processed_feats = []
-	for batch in range(batch_size:1000000):
-		example = val_comments[:batch_size]
-		example_features = extract_comment_features(text_model, example, batch_size, device)
-		processed_feats.extend(example_features)
+	true_processed_feats, neg_processed_feats = [], []
+	for i in range(0,true_comments.shape[0],batch_size): 
+		true_batch, neg_batch = true_comments[i:i+batch_size], neg_comments[i:i+batch_size]
+		true_example_features = extract_comment_features(text_model, true_batch, batch_size, device) #<class 'list'> (128, 100, 200)
+		neg_example_features = extract_comment_features(text_model, neg_batch, batch_size, device) #<class 'list'> (128, 100, 200)
+		true_processed_feats.extend(true_example_features)
+		neg_processed_feats.extend(neg_example_features)
+	# for true_batch, neg_batch in progress_in_text_batches('comments', true_comments_iter, neg_comments_iter, true_comments.shape[0],batch_size):
+	#   true_example_features = extract_comment_features(text_model, true_batch, batch_size, device)
+	#   neg_example_features = extract_comment_features(text_model, neg_batch, batch_size, device)
+	#   print(f'type(true_example_features): {type(true_example_features)} \ntype(true_example_features[0]): {type(true_example_features[0])}')
+	#   print(f'type(neg_example_features): {type(neg_example_features)} \ntype(neg_example_features[0]): {type(neg_example_features[0])}')
+	#   true_processed_feats.extend(true_example_features)
+	#   neg_processed_feats.extend(neg_example_features)
 
+	print(f'-----text_feature_matrix----: {np.array(true_processed_feats).shape}')
+	
 	text_time = time.time() - start
-	print(f'true_comments.shape: {true_comments.shape}\tneg_comments.shape: {neg_comments.shape}')
 	print('Time elapsed making text feature matrix:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(text_time))))
 
-	return true_comments, neg_comments #<class 'numpy.ndarray'>, <class 'numpy.ndarray'>
+	return true_processed_feats, neg_processed_feats #<class 'list'> , <class 'list'> 
 
 def get_examples(boards_matrix, pos_text_matrix, neg_text_matrix, fnames):
 
 	start = time.time()
 
-	X, y = [],[]
+	X, y, pca = [],[], PCA(n_components=100)
+
 
 	for i, (board_feat_arr, pos_text_feat_arr, neg_text_feat_arr, fname) in enumerate(zip(boards_matrix, pos_text_matrix, neg_text_matrix, fnames)):
-		print(f'board_feat_arr.shape: {board_feat_arr.shape}')
-		print(f'len(pos_text_feat_arr): {len(pos_text_feat_arr)}\tlen(neg_text_feat_arr): {len(neg_text_feat_arr)}')
-		print(f'cur fname: {fname}\n')
+		# print(f'board_feat_arr.shape: {board_feat_arr.shape}')
+		# print(f'len(pos_text_feat_arr): {len(pos_text_feat_arr)}\nlen(neg_text_feat_arr): {len(neg_text_feat_arr)}')
+		# print(f'cur fname: {fname}\n')
 		choices = next(lazy_load(fname))
 		for line in choices:
 			indices_str, pos_idx = line.split('\t')
 			## append positive sample
-			## Do PCA for board (19,19)
-			## Do PCA for text and text  --> (100,200)
-			X.append(np.concatenate((board_feat_arr[int(pos_idx)],pos_text_feat_arr[i]))) ##pos_text_feat_arr[int(pos_idx)]
+			## Do PCA for board (20676, 361, 128)
+			## Do PCA for text and text  --> (20676, 100,200)
+			# board_feature.shape: (361, 128) 
+			# text_feature.shape: (100, 200) 
+			truncated_pos_text_feat_arr = np.array(pos_text_feat_arr[i])[:,:128] #(100,128)
+			truncated_neg_text_feat_arr = np.array(neg_text_feat_arr[i])[:,:128] #(100,128)
+			pos_board_dot_text = np.dot(board_feat_arr[int(pos_idx)],truncated_pos_text_feat_arr.T) # (361,100)
+			neg_board_dot_text = np.dot(board_feat_arr[int(pos_idx)],truncated_pos_text_feat_arr.T) # (361,100)
+			X.append(pos_board_dot_text.flatten()) # (36100,)
 			y.append(1)
 			## append negative example, select the 1st negative example from the group
-			X.append(np.concatenate((board_feat_arr[int(pos_idx)],neg_text_feat_arr[i])))
+			X.append(neg_board_dot_text.flatten()) # (36100,)
 			y.append(0)
 
 	examples_time = time.time() - start
-	X_nparr, y_nparr = np.array(X), np.array(y)
-	# print(f'tensor X num_examples: {X.shape}\ttensor y num_examples: {y.shape}')
+	X_nparr, y_nparr = pca.fit_transform(np.array(X)), np.array(y)
 	print(f'X num_examples: {X_nparr.shape}\ty num_examples: {y_nparr.shape}')
-	# print('Time elapsed getting examples:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(examples_time))))
+	print('Time elapsed getting examples:\t%s' % (time.strftime("%H:%M:%S", time.gmtime(examples_time))))
 
-	return X_nparr, y_nparr ##X_nparr or X, y_nparr or y - do I need to convert this to array or leave in tensor?
+	return X_nparr, y_nparr 
 
 def automatic_grid_search(X, y, X_test, y_test, test_set=False):
 
@@ -278,20 +339,23 @@ def main(X, y, X_test, y_test, best_params):
 	accuracy = clf.score(X_test, y_test)
 
 	## get predictions using predict probabilities
-	temp = clf.predict_proba(X_test)[:,1]
-	print(f'type(temp): {type(temp)}')
-	print(f'temp[:100]: {temp[:100]}')
-	print('\n\n')
-	y_pred = np.zeros(temp.shape[0])
-	y_pred[np.where(temp>0.9)]=1
-	print(y_pred[:100])
-	print('\n\n')
-	print('y_pred.shape: ', y_pred.shape)
+	# temp = clf.predict_proba(X_test)[:,1]
+	# print(f'type(temp): {type(temp)}')
+	# print(f'temp[:100]: {temp[:100]}')
+	# print('\n\n')
+	# y_pred = np.zeros(temp.shape[0])
+	# y_pred[np.where(temp>0.9)]=1
+	# print(y_pred[:100])
+	# print('\n\n')
+	# print('y_pred.shape: ', y_pred.shape)
+
+	## predictions using predict() method
+	# y_pred = clf.predict(X_test)
 
 
 	## print confusion matrix
 	print(f'\n---Confusion Matrix---')
-	cm = confusion_matrix(y_test, y_pred) #clf.predict(X_test)
+	cm = confusion_matrix(y_test, clf.predict(X_test)) #clf.predict(X_test)
 
 	fig, ax = plt.subplots(figsize=(8, 8))
 	ax.imshow(cm)
@@ -300,8 +364,8 @@ def main(X, y, X_test, y_test, best_params):
 	ax.yaxis.set(ticks=(0, 1), ticklabels=('Actual 0s', 'Actual 1s'))
 	ax.set_ylim(1.5, -0.5)
 	for i in range(2):
-	    for j in range(2):
-	        ax.text(j, i, cm[i, j], ha='center', va='center', color='red')
+		for j in range(2):
+			ax.text(j, i, cm[i, j], ha='center', va='center', color='red')
 	plt.savefig("data_pretrained_numpy/confusion_matrix.png")
 
 	## classification report
@@ -319,16 +383,41 @@ def main(X, y, X_test, y_test, best_params):
 ### HELPER FUNCS
 ################
 
-def progress_in_batches(name, iterator, total_length, increment):
-    count = 0
-    while True:
-        next_batch = list(islice(iterator, increment))
-        if len(next_batch) > 0:
-            count += len(next_batch)
-            print('\nCreating SQLiteDict {}... percentage processed {}'.format(name, (count/total_length)*100))
-            yield next_batch
-        else:
-            break
+# def progress_in_batches(name, iterator, total_length, increment):
+# 	count = 0
+# 	while True:
+# 		next_batch = list(islice(iterator, increment))
+# 		if len(next_batch) > 0:
+# 			count += len(next_batch)
+# 			print('\nCreating features for {} batch... percentage processed {}'.format(name, (count/total_length)*100))
+# 			yield next_batch
+# 		else:
+# 			break
+
+def progress_in_board_batches(name, iterator1, iterator2, total_length, increment):
+	count = 0
+	while True:
+		next_batch1 = list(islice(iterator1, increment))
+		next_batch2 = list(islice(iterator2, increment))
+		if len(next_batch1) > 0:
+			count += len(next_batch1)
+			print('Creating features for {} batch... percentage processed {}'.format(name, (count/total_length)*100))
+			yield next_batch1, next_batch2
+		else:
+			break
+
+def progress_in_text_batches(name, iterator1, iterator2, total_length, increment):
+	count = 0
+	while True:
+		next_batch1 = islice(iterator1, increment)
+		next_batch2 = islice(iterator2, increment)
+		if len(next_batch1) > 0: #0
+			count += len(next_batch1)
+			if count % 640 == 0:
+				print('Creating features for {} batch... percentage processed {}'.format(name, (count/total_length)*100))
+			yield next_batch1, next_batch2
+		else:
+			break
 
 def lazy_pickle_load(fname):
 	file_obj = open(fname, "rb")
@@ -353,7 +442,7 @@ if __name__ == '__main__':
 
 	start = time.time()
 
-	saved_model_dir = "katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/"
+	saved_model_dir = "katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/" #"katago/trained_models/g170e-b20c256x2-s5303129600-d1228401921/saved_model/" #"katago/trained_models/g170e-b10c128-s1141046784-d204142634/saved_model/"
 	model, model_variables_prefix, model_config_json = katago.get_model(saved_model_dir)
 
 	saver = tf.train.Saver(
@@ -366,21 +455,22 @@ if __name__ == '__main__':
 	with tf.Session() as session:
 		saver.restore(session, model_variables_prefix)
 
-		# X_train, y_train, X_val, y_val, X_comb, y_comb, X_test, y_test = get_training_sets(session, model)
+		## get datasets
+		X_train, y_train, X_val, y_val, X_comb, y_comb, X_test, y_test = get_training_sets(session, model)
 
 		print('\n---Logistic Regression In Progress---')
 
 		## Load Data
 		best_params = {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
-		X_train, y_train = pickle_load('data_pretrained_numpy/X_comb.pkl'), pickle_load('data_pretrained_numpy/y_comb.pkl')
-		X_test, y_test = pickle_load('data_pretrained_numpy/X_test.pkl'), pickle_load('data_pretrained_numpy/y_test.pkl') 
-		print(X_train.shape)
-		print(y_train.shape)
-		print(X_test.shape)
-		print(y_test.shape)
+		# X_train, y_train = pickle_load('data_pretrained_numpy/X_comb.pkl'), pickle_load('data_pretrained_numpy/y_comb.pkl')
+		# X_test, y_test = pickle_load('data_pretrained_numpy/X_test.pkl'), pickle_load('data_pretrained_numpy/y_test.pkl') 
+		# print(X_train.shape)
+		# print(y_train.shape)
+		# print(X_test.shape)
+		# print(y_test.shape)
 
 		## Run Main
-		test_accuracy  = main(X_train, y_train, X_test, y_test, best_params)		
+		test_accuracy  = main(X_comb, y_comb, X_test, y_test, best_params)        
 		print(f'test_accuracy: {test_accuracy}')
 
 		## display results
