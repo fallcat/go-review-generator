@@ -6,11 +6,11 @@ import torch.optim as optim
 import torchvision
 import torch.utils.data as data_utils
 import nltk
+import torch.nn.functional as F
 
-import matplotlib.pyplot as plt
+
 import numpy as np
 import pickle
-import pandas as pd
 
 import time
 import os
@@ -20,9 +20,8 @@ import pickle
 import os
 import time
 import tqdm
-import spacy
-import en_core_web_sm
-import pandas as pd
+#import spacy
+#import en_core_web_sm
 from itertools import cycle
 import numpy as np
 import torch
@@ -38,6 +37,9 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 # os.chdir('D:/GoReview')
 dataset_dir = "D:/GoReview/data_splits_final"
+
+if torch.cuda.is_available():
+    print('gpu')
 
 def raw_file_loader(dataset_dir, fboard, fcomment, fchoice):
     file_obj = open(dataset_dir + fboard, 'rb')
@@ -136,12 +138,12 @@ train_board, train_comment, train_choice = raw_file_loader(dataset_dir, '/train.
 comment_num, comment_length = create_comment_vec(train_comment, train_vocab)
 X_board, X_move, X_comment, X_comment_vec, X_comment_len, y = prepare_data(train_board, train_comment, comment_num, comment_length, train_choice)
 
-final_train = data_utils.TensorDataset(torch.Tensor(np.array(X_board[0:100000])), \
-     torch.Tensor(np.array(X_move[0:100000])), \
-     torch.tensor(np.array(X_comment_vec[0:100000]), dtype = torch.long),\
-     torch.tensor(np.array(X_comment_len[0:100000]), dtype=torch.long),
-     torch.tensor(np.array(y[0:100000]), dtype=torch.float32))
-train_loader = data_utils.DataLoader(final_train, batch_size = 128, shuffle=True)
+final_train = data_utils.TensorDataset(torch.Tensor(np.array(X_board)), \
+     torch.Tensor(np.array(X_move)), \
+     torch.tensor(np.array(X_comment_vec), dtype = torch.long),\
+     torch.tensor(np.array(X_comment_len), dtype=torch.long),
+     torch.tensor(np.array(y), dtype=torch.float32))
+train_loader = data_utils.DataLoader(final_train, batch_size = 64, shuffle=True)
 
 test_board, test_comment, test_choice = raw_file_loader(dataset_dir, '/test.pkl', '/test_comments.tok.32000.txt', '/test.choices.pkl')
 comment_num_test, comment_length_test = create_comment_vec(test_comment, train_vocab)
@@ -152,7 +154,30 @@ final_test = data_utils.TensorDataset(torch.Tensor(np.array(X_board_test)), \
      torch.tensor(np.array(X_comment_vec_test), dtype = torch.long),\
      torch.tensor(np.array(X_comment_len_test), dtype=torch.long),
      torch.tensor(np.array(y_test), dtype=torch.float32))
-test_loader = data_utils.DataLoader(final_test, batch_size = 128, shuffle=True)
+test_loader = data_utils.DataLoader(final_test, batch_size = 64, shuffle=True)
+
+val_board, val_comment, val_choice = raw_file_loader(dataset_dir, '/val.pkl', '/val_comments.tok.32000.txt', '/val.choices.pkl')
+comment_num_val, comment_length_val = create_comment_vec(val_comment, train_vocab)
+X_board_val, X_move_val, X_comment_val, X_comment_vec_val, X_comment_len_val, y_val = prepare_data(val_board, val_comment, comment_num_val, comment_length_val, val_choice)
+
+final_val = data_utils.TensorDataset(torch.Tensor(np.array(X_board_val)), \
+     torch.Tensor(np.array(X_move_val)), \
+     torch.tensor(np.array(X_comment_vec_val), dtype = torch.long),\
+     torch.tensor(np.array(X_comment_len_val), dtype=torch.long),
+     torch.tensor(np.array(y_val), dtype=torch.float32))
+valid_loader = data_utils.DataLoader(final_val, batch_size = 64, shuffle=True)
+
+def save_checkpoint(save_path, model, optimizer, valid_loss):
+
+    if save_path == None:
+        return
+    
+    state_dict = {'model_state_dict': model.state_dict(),
+                  'optimizer_state_dict': optimizer.state_dict(),
+                  'valid_loss': valid_loss}
+    
+    torch.save(state_dict, save_path)
+    print(f'Model saved to ==> {save_path}')
 
 def model_eval(net):
     """ evaluate test set 
@@ -169,16 +194,20 @@ def model_eval(net):
             correct += (pred == labels).sum().item()
 
     test_accuracy = 100 * correct / total
-    print('Accuracy of the network on the test sets: %.6f' % (100 * correct / total))
+    print('Accuracy of the network on the test sets: %.6f' % (100 * correct / total), flush = True)
     return test_accuracy
 
 
-def train_model(net, criterion, optimizer, n_epochs):
-    losses = []
+def train_model(model, criterion, optimizer, scheduler, n_epochs):
+    best_valid_loss = float("Inf")
+    global_step = 0
+    train_losses = []
+    valid_losses = []
     accuracies = []
     test_accuracies = []
+    valid_running_loss = 0.0
 
-    net.train()
+    model.train()
     for epoch in tqdm.tqdm(range(n_epochs)):  # loop over the dataset multiple times
         since = time.time()
         running_loss = 0
@@ -190,8 +219,8 @@ def train_model(net, criterion, optimizer, n_epochs):
             # zero the parameter gradients
             optimizer.zero_grad()
             # forward + backward + optimize
-            outputs = net(x1, x2, x3, x4)
-            labels = labels.unsqueeze(1)
+            outputs = model(x1, x2, x3, x4)
+            outputs = outputs.squeeze(1)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -201,26 +230,47 @@ def train_model(net, criterion, optimizer, n_epochs):
 
             # print statistics
             running_loss += loss.item()
-            running_correct += (labels==pred).sum().item()
+            global_step += 1
 
             if i % 200 == 199:    # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.6f' %(epoch + 1, i + 1, running_loss / 200))
-                print('Accuracy', accuracy.item())
-                losses.append(running_loss)
+                print('[%d, %5d] loss: %.6f' %(epoch + 1, i + 1, running_loss / 200), flush = True)
+                print('Accuracy', accuracy.item(), flush = True)
+                train_losses.append(running_loss / 200)
                 accuracies.append(accuracy.item())
                 running_loss = 0.0
 
+
+            if global_step % 200 == 0:
+                model.eval()
+                with torch.no_grad():                   
+                    # validation loop 
+                    for data in valid_loader:
+                        x1, x2, x3, x4, labels = data
+                        output = model(x1, x2, x3, x4)
+                        output = output.squeeze(1)
+                        loss = criterion(output, labels)
+                        valid_running_loss += loss.item()
+
+                average_valid_loss = valid_running_loss / len(valid_loader)
+                valid_losses.append(average_valid_loss)
+                valid_running_loss = 0.0
+                model.train()
+
+                if average_valid_loss <  best_valid_loss:
+                    best_valid_loss = average_valid_loss
+                    save_checkpoint('D:/GoReview' + '/model_01LR.pt', model, optimizer, best_valid_loss)
+
         # evaluate models
-        net.eval()
-        test_acc = model_eval(net)
+        model.eval()
+        test_acc = model_eval(model)
         test_accuracies.append(test_acc)
 
         # reset to train
-        net.train()
-        #scheduler.step(test_acc)
+        model.train()
+        scheduler.step()
 
     print('Finished Training')
-    return net, losses, accuracies, test_accuracies
+    return model, train_losses, valid_losses, accuracies, test_accuracies
 
    
 
@@ -230,17 +280,10 @@ class MyModel(nn.Module):
     def __init__(self, dimension=64):
         super(MyModel, self).__init__()        
         # layers for board
-        self.features1 = nn.Sequential(
-            nn.Linear(19, 19*2),
-            #nn.Conv2d(1, 19, 5, 1, 2),
-            #nn.MaxPool2d(2),
-            nn.ReLU(),
-            nn.Linear(19*2, 19*2),
-        )
-        # layers for move & player
-        self.features2 = nn.Sequential(
-            nn.Conv2d(1, 3, 3, 1, 1),
-            nn.ReLU())
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=9, stride=1, padding=4)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=7, stride=1, padding=3)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1, padding=2)
+        self.fcboard_1 = nn.Linear(in_features=32*19*19, out_features=19*19)
 
         self.fc11 = nn.Linear(19*19, 19*19)
         #self.fc12 = nn.Linear(19*19, 19)    
@@ -264,14 +307,19 @@ class MyModel(nn.Module):
         
     def forward(self, x_board, x_move, text, text_len):
         # reshape x_board, x_move
-        #x1 = x_board.unsqueeze(1)
+        x1 = x_board.unsqueeze(1)
         #x2 = x_move.unsqueeze(1)
         #x2 = x2.unsqueeze(3)
         #x1 = self.features1(x1)
         #x2 = self.features2(x2)
         
-        x1 = x_board.view(-1, 19*19)
-        x1 = self.relu(self.fc11(x1))
+        x1 = F.relu(self.conv1(x1))
+        x1 = F.relu(self.conv2(x1))
+        x1 = F.relu(self.conv3(x1))
+        x1 = x1.view(-1, 32*19*19)
+        x1 = self.fcboard_1(x1)        #x1 = x_board.view(-1, 19*19)
+        #x1 = self.relu(self.fc11(x1))
+        #x1 = self.sp(self.fc12(x1))
 
         text_emb = self.embedding(text)
         #print(text_len)
@@ -282,6 +330,11 @@ class MyModel(nn.Module):
         out_forward = output[range(len(output)), text_len - 1, :self.dimension]
         out_reverse = output[:, 0, self.dimension:]
         x3 = torch.cat((out_forward, out_reverse), 1)
+        #x3 = self.drop(out_reduced)
+
+        #x3 = self.fc(text_fea)
+        #text_fea = torch.squeeze(text_fea, 1)
+        #text_out = torch.sigmoid(text_fea)
 
         x1 = x1.view(x1.size(0), -1)
         x2 = x_move.view(x_move.size(0), -1)
@@ -289,6 +342,7 @@ class MyModel(nn.Module):
         
         x = torch.cat((x1, x2), dim=1)
         x = self.bil(x, x3)
+        #x = self.drop(x)
         x = self.drop(self.relu(self.fc1(x))) 
         x = self.drop(self.relu(self.fc2(x)))
   
@@ -299,10 +353,16 @@ net_cnnlstm_test = MyModel()
 
 # set up criteria
 criterion = nn.BCELoss()
-optimizer = optim.Adam(net_cnnlstm_test.parameters(), lr=0.001)
+optimizer = optim.Adam(net_cnnlstm_test.parameters(), lr=0.1)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.5)
 
 begin = time.time()
-model, losses, accuracies, t_accuracies = train_model(net_cnnlstm_test, criterion, optimizer, n_epochs = 25)
+model, train_losses, valid_losses, accuracies, t_accuracies = train_model(net_cnnlstm_test, criterion, optimizer, scheduler, n_epochs = 25)
 total = time.time() - begin
+
+print(train_losses)
+print(valid_losses)
+print(accuracies)
+print(t_accuracies)
 
 print(time.time)
