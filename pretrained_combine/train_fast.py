@@ -20,7 +20,7 @@ import tensorflow as tf
 import katago
 from katago.board import IllegalMoveError
 
-from pretrained_combine.go_dataset_pretrained import GoDataset
+from pretrained_combine.go_dataset_pretrained_fast import GoDataset
 from torch.utils.data import DataLoader
 
 from transformer_encoder import get_comment_features
@@ -41,7 +41,7 @@ def parse_args():
                         help='Directory of katago model')
     parser.add_argument('--experiment-dir', type=str, default='experiments/exp01',
                         help='Directory to save the experiment')
-    parser.add_argument('--restore_dir', type=str, default=None, help='Directory to restore exp from')
+    parser.add_argument('--restore-dir', type=str, default=None, help='Directory to restore exp from')
 
     # training config
     parser.add_argument('--split', type=str, default='train',
@@ -52,10 +52,12 @@ def parse_args():
     parser.add_argument('--track', default=False, action='store_true', help='Use this flag to track the experiment')
     parser.add_argument('--checkpoint-interval', type=int, default=50, help='Checkpoint every how many steps')
     parser.add_argument('--max-checkpoints', type=int, default=5, help='Max number of checkpoints to keep')
-    parser.add_argument('--learning-rate', type=int, default=3e-4, help='Learning rate')
+    parser.add_argument('--learning-rate', type=float, default=None, help='Learning rate')
     parser.add_argument('--scheduler-type', type=str, default='warmup', choices=['warmup'], help='Scheduler type')
     parser.add_argument('--warmup-steps', type=int, default=4000, help='Warmup steps')
     parser.add_argument('--seed', type=int, default=42, help='Manual seed for torch')
+    parser.add_argument('--xavier', default=False, action='store_true', help='Use xavier uniform init')
+    parser.add_argument('--weight-decay', type=float, default=0, help='L2 regularization to reduce overfitting')
 
     # text config
     parser.add_argument('--emsize', type=int, default=200, help='embedding dimension for text')
@@ -67,9 +69,10 @@ def parse_args():
     parser.add_argument('--dropout', type=float, default=0.2, help='the dropout value')
     parser.add_argument('--sentence-len', type=int, default=100, help='sentence len')
     parser.add_argument('--text-hidden-dim', type=int, default=200, help='text hidden dim')
+    parser.add_argument('--finetune-text', default=False, action='store_true', help='finetune text')
 
     # combine model config
-    parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'dot', 'attn'],
+    parser.add_argument('--combine', type=str, default='concat', choices=['concat', 'concat_ffn', 'dot', 'attn'],
                         help='Hidden dim size for the combine model')
     parser.add_argument('--d-model', type=int, default=512, help='Hidden dim size for the combine model')
     parser.add_argument('--combine-num-heads', type=int, default=4,
@@ -81,9 +84,12 @@ def parse_args():
     return parser
 
 
-def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device):
+def evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, batch_size, device,
+             finetune_text=False):
     print('------ evaluate ------')
     combine_model.eval()
+    if finetune_text:
+        text_model.eval()
     batches = tqdm(enumerate(val_dataloader))
     num_batches = int(len(val_dataloader.dataset) / batch_size)
     total_correct = 0
@@ -91,20 +97,18 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     total_total = 0
     for i_batch, sampled_batched in batches:
         batches.set_description(f'Evaluate batch {i_batch}/{num_batches}')
-        color = sampled_batched[1]['color']
-        board = sampled_batched[1]['board'].numpy()
+        bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
+        global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
         text = sampled_batched[1]['text']
         label = sampled_batched[1]['label'][:, None].to(device)
 
-        try:
-            board_features = torch.tensor(
-                katago.extract_features_batch(session, board_model, board, color)).to(
-                device)
-        except IllegalMoveError:
-            print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-            continue
+        board_features = torch.tensor(
+            katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
+                                                                          bin_input_datas,
+                                                                          global_input_datas)).to(device)
 
-        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), batch_size, device)).to(device)
+        text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
+                                                                                   batch_size, device)).to(device)
         logits = combine_model(board_features, text_features)
         loss = criterion(logits, label.type_as(logits))
         total_loss += loss
@@ -116,6 +120,8 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
     accuracy = float(total_correct) / total_total
     loss_avg = float(total_loss) / total_total
     combine_model.train()
+    if finetune_text:
+        text_model.train()
     print(f'Validation accuracy: {accuracy}, validation loss: {loss_avg}')
     return accuracy, loss_avg
 
@@ -123,6 +129,12 @@ def evaluate(session, combine_model, board_model, text_model, criterion, val_dat
 def main():
     parser = parse_args()
     args = parser.parse_args()
+    if args.learning_rate is None:
+        args.learning_rate = args.d_model ** - 0.5
+
+    print('\n---argparser---:')
+    for arg in vars(args):
+        print(arg, getattr(args, arg), '\t', type(arg))
 
     torch.manual_seed(args.seed)
     if args.track:
@@ -153,8 +165,9 @@ def main():
     text_model = TransformerModel_extractFeature(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout)
     if torch.cuda.is_available():
         text_model = text_model.cuda()
-    for param in text_model.parameters():
-        param.requires_grad = False  # freeze params in the pretrained model
+    if not args.finetune_text:
+        for param in text_model.parameters():
+            param.requires_grad = False  # freeze params in the pretrained model
 
     # Construct the model
     combine_model = PretrainedCombineModel(combine=args.combine,d_model=args.d_model, dropout_p=args.dropout_p,
@@ -166,7 +179,11 @@ def main():
     if args.track:
         wandb.watch(combine_model)
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(combine_model.parameters(), args.learning_rate)
+    if args.finetune_text:
+        optimizer = optim.Adam(list(combine_model.parameters()) + list(text_model.parameters()), args.learning_rate,
+                               weight_decay=args.weight_decay)
+    else:
+        optimizer = optim.Adam(combine_model.parameters(), args.learning_rate, weight_decay=args.weight_decay)
     if args.scheduler_type == 'warmup':
         lr_scheduler = LambdaLR(
             optimizer,
@@ -177,9 +194,15 @@ def main():
     else:
         raise ValueError('Unknown scheduler type: ', args.scheduler_type)
 
-    modules = {'combine_model': combine_model,
-               'optimizer': optimizer,
-               'lr_scheduler': lr_scheduler}
+    if args.finetune_text:
+        modules = {'combine_model': combine_model,
+                   'optimizer': optimizer,
+                   'lr_scheduler': lr_scheduler}
+    else:
+        modules = {'text_model': text_model,
+                   'combine_model': combine_model,
+                   'optimizer': optimizer,
+                   'lr_scheduler': lr_scheduler}
 
     if args.restore_dir is not None:
         epoch_restore, step_restore = restore(
@@ -190,6 +213,8 @@ def main():
             strict=True
         )
     else:
+        if args.xavier:
+            combine_model.reset_parameters()
         epoch_restore, step_restore = 0, 0
 
 
@@ -214,19 +239,18 @@ def main():
                     continue
                 step += 1
                 batches.set_description(f'Epoch {epoch} batch {i_batch}/{num_batches}')
-                color = sampled_batched[1]['color']
-                board = sampled_batched[1]['board'].numpy()
+                bin_input_datas = sampled_batched[1]['bin_input_datas'].numpy()
+                global_input_datas = sampled_batched[1]['global_input_datas'].numpy()
                 text = sampled_batched[1]['text']
                 label = sampled_batched[1]['label'][:, None].to(device)
 
-                try:
-                    board_features = torch.tensor(
-                        katago.extract_features_batch(session, board_model, board, color)).to(device)
-                except IllegalMoveError:
-                    print(f"IllegalMoveError, skipped batch {sampled_batched[0]}")
-                    continue
-
-                text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device), args.batch_size, device)).to(device)
+                board_features = torch.tensor(
+                    katago.extract_intermediate.fetch_output_batch_with_bin_input(session, board_model,
+                                                                                      bin_input_datas,
+                                                                                      global_input_datas)).to(device)
+                text_features = torch.tensor(get_comment_features.extract_comment_features(text_model, text.to(device),
+                                                                                           args.batch_size,
+                                                                                           device)).to(device)
 
                 logits = combine_model(board_features, text_features)
                 loss = criterion(logits, label.type_as(logits))
@@ -250,7 +274,7 @@ def main():
                                    'lr': lr_scheduler.get_lr(),
                                    'epoch': epoch,
                                    'step': step})
-            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device)
+            val_acc, val_loss = evaluate(session, combine_model, board_model, text_model, criterion, val_dataloader, args.batch_size, device, args.finetune_text)
             val_loss_history.append(val_loss)
             if val_loss >= max(val_loss_history):  # best
                 dirname = os.path.dirname(checkpoint_path)

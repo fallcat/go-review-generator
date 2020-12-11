@@ -2,8 +2,9 @@ import os
 import pickle
 from torch.utils.data import Dataset
 import collections
-from transformer_encoder.model import *
-from transformer_encoder import data_process
+import h5py
+import numpy as np
+import torch
 
 
 class GoDataset(Dataset):
@@ -40,25 +41,27 @@ class GoDataset(Dataset):
 
     def get_board(self):
         print("------ Loading boards ------")
-        pkl_path = os.path.join(self.data_dir, self.split + '.pkl')
+        h5_path = os.path.join(self.data_dir, self.split + '_board_inputs.h5')
 
-        with open(pkl_path, 'rb') as input_file:
-            board_data = pickle.load(input_file)
-        self.data_raw['rows'] = np.array([board[0] for board in board_data['boards']])
-        self.data_raw['cols'] = np.array([board[1] for board in board_data['boards']])
-        self.data_raw['colors'] = np.array([board[2] for board in board_data['boards']])
-        self.data_raw['boards'] = np.array([board[3] for board in board_data['boards']])
-        print('Boards shape', self.data_raw['boards'].shape)
+        with h5py.File(h5_path, 'r') as hf:
+            bin_input_datas = hf.get('bin_input_datas')
+            global_input_datas = hf.get('global_input_datas')
+            self.data_raw['bin_input_datas'] = np.array(bin_input_datas) # 'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas
+            self.data_raw['global_input_datas'] = np.array(global_input_datas)
+            print('Boards shape', self.data_raw['bin_input_datas'].shape)
 
     def get_text(self):
         print("------ Loading text ------")
-        comments_filepath = os.path.join(self.data_dir,  f'{self.split}_comments.tok.32000.txt')
-        vocab_filepath = os.path.join(self.data_dir,  'vocab.32000')
-        comments, vocab_size = data_process.read_comment_subword(comments_filepath, vocab_filepath, 5)
+        h5_path = os.path.join(self.data_dir, self.split + '_text_inputs.h5')
+        with h5py.File(h5_path, 'r') as hf:
+            comments = np.array(hf.get('comments'))
+            vocab_size = int(np.array(hf.get('vocab_size')))
+            hf.close()
+            print("vocab_size", vocab_size)
 
-        self.data_raw['texts'] = torch.tensor(comments).to(self.device)
-        self.vocab_size = vocab_size
-        print('Texts shape', self.data_raw['texts'].shape)
+            self.data_raw['texts'] = torch.tensor(comments).to(self.device)
+            self.vocab_size = vocab_size
+            print('Texts shape', self.data_raw['texts'].shape)
 
     def get_choices(self):
         print("------ Loading choices ------")
@@ -67,12 +70,11 @@ class GoDataset(Dataset):
             self.choices = pickle.load(input_file)
 
     def get_example(self, board_idx, text_idx, label):
-        row = self.data_raw['rows'][board_idx]
-        col = self.data_raw['cols'][board_idx]
-        color = self.data_raw['colors'][board_idx]
-        board = self.data_raw['boards'][board_idx]
+        bin_input_datas = self.data_raw['bin_input_datas'][board_idx]
+        global_input_datas = self.data_raw['global_input_datas'][board_idx]
         text = self.data_raw['texts'][text_idx]
-        return {'row': row, 'col': col, 'color': color, 'board': board, 'text': text.to(self.device), 'label': label}
+        return {'bin_input_datas': bin_input_datas, 'global_input_datas': global_input_datas,
+                'text': text.to(self.device), 'label': label}
 
     def get_pos_neg_examples(self):
         print("------ Loading positive and negative examples ------")
