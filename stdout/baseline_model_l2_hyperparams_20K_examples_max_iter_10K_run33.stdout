@@ -1,0 +1,241 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes l2 hyperparameters, 20K examples, max_iter=10K. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---TRAIN EXAMPLES---
+board_feature_matrix.shape: (209566, 364)
+Time elapsed making board feature matrix:	00:04:11
+text_feature_matrix.shape: (209566, 1000)
+Time elapsed making text feature matrix:	00:00:10
+boards_mat.shape: (209566, 364)
+len(text_mat): 209566
+cur fname: data/train.choices.txt
+
+X num_examples: (419132, 1364)	y num_examples: (419132,)
+Time elapsed getting examples:	00:00:07
+
+---VALIDATION EXAMPLES---
+board_feature_matrix.shape: (20676, 364)
+Time elapsed making board feature matrix:	00:00:25
+text_feature_matrix.shape: (20676, 1000)
+Time elapsed making text feature matrix:	00:00:01
+boards_mat.shape: (20676, 364)
+len(text_mat): 20676
+cur fname: data/val.choices.txt
+
+X num_examples: (41352, 1364)	y num_examples: (41352,)
+Time elapsed getting examples:	00:00:00
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making board feature matrix:	00:01:48
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed making text feature matrix:	00:00:04
+boards_mat.shape: (91468, 364)
+len(text_mat): 91468
+cur fname: data/test.choices.txt
+
+X num_examples: (182936, 1364)	y num_examples: (182936,)
+Time elapsed getting examples:	00:00:03
+
+---TRAIN+VALIDATION COMBINED EXAMPLES FOR AUTOGRID SEARCH---
+boards_mat.shape: (209566, 364)
+len(text_mat): 209566
+cur fname: data/train.choices.txt
+
+boards_mat.shape: (20676, 364)
+len(text_mat): 20676
+cur fname: data/val.choices.txt
+
+X num_examples: (460484, 1364)	y num_examples: (460484,)
+Time elapsed getting examples:	00:00:08
+
+---Logistic Regression Auto Grid In Progress---
+starting auto parameter search..
+
+# Tuning hyper-parameters for precision
+
+
+Best parameters set found on development set:
+
+
+{'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+
+
+Grid scores on development set:
+
+
+0.982 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.943 (+/-0.008) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.982 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.985 (+/-0.003) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.987 (+/-0.003) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.985 (+/-0.004) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.990 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.994 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.994 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.994 (+/-0.001) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.994 (+/-0.002) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.49      0.87      0.63     91468
+           1       0.43      0.10      0.16     91468
+
+    accuracy                           0.48    182936
+   macro avg       0.46      0.48      0.39    182936
+weighted avg       0.46      0.48      0.39    182936
+
+
+
+
+# Tuning hyper-parameters for recall
+
+
+Best parameters set found on development set:
+
+
+{'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+
+
+Grid scores on development set:
+
+
+0.981 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.940 (+/-0.008) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.981 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.985 (+/-0.004) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.986 (+/-0.003) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.985 (+/-0.004) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.990 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.994 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.994 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.993 (+/-0.001) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.994 (+/-0.002) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.49      0.87      0.63     91468
+           1       0.43      0.10      0.16     91468
+
+    accuracy                           0.48    182936
+   macro avg       0.46      0.48      0.39    182936
+weighted avg       0.46      0.48      0.39    182936
+
+
+
+
+# Tuning hyper-parameters for f1
+
+
+Best parameters set found on development set:
+
+
+{'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+
+
+Grid scores on development set:
+
+
+0.981 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.940 (+/-0.008) for {'C': 0.001, 'penalty': 'l2', 'solver': 'liblinear'}
+0.981 (+/-0.003) for {'C': 0.001, 'penalty': 'l2', 'solver': 'sag'}
+0.985 (+/-0.004) for {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.986 (+/-0.003) for {'C': 0.01, 'penalty': 'l2', 'solver': 'liblinear'}
+0.985 (+/-0.004) for {'C': 0.01, 'penalty': 'l2', 'solver': 'sag'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.990 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.989 (+/-0.003) for {'C': 0.1, 'penalty': 'l2', 'solver': 'sag'}
+0.993 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.994 (+/-0.002) for {'C': 1, 'penalty': 'l2', 'solver': 'liblinear'}
+0.993 (+/-0.001) for {'C': 1, 'penalty': 'l2', 'solver': 'sag'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'lbfgs'}
+0.995 (+/-0.000) for {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+0.994 (+/-0.002) for {'C': 10, 'penalty': 'l2', 'solver': 'sag'}
+
+
+Detailed classification report:
+
+
+The model is trained on the full development set.
+The scores are computed on the full evaluation set.
+
+
+              precision    recall  f1-score   support
+
+           0       0.49      0.87      0.63     91468
+           1       0.43      0.10      0.16     91468
+
+    accuracy                           0.48    182936
+   macro avg       0.46      0.48      0.39    182936
+weighted avg       0.46      0.48      0.39    182936
+
+
+
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	15:13:45
+
+
+---Results---
+test_accuracy: 0.3939444212351061	test_best_score: 0.9950498778313331
+*test*	best_model: {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.3939444212351061
+Time elapsed in main:	15:20:55

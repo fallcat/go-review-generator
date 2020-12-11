@@ -1,0 +1,195 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes 50/50 ratio, max_features=1000, max_iter=5000, 20K examples subset, 5 regularization values, using model.predict_proba(x) method. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+end_index 5 	 <class 'str'>
+DEBUG_flag False 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---TRAIN EXAMPLES---
+board_feature_matrix.shape: (209566, 364)
+Time elapsed making board feature matrix:	00:04:04
+text_feature_matrix.shape: (209566, 1000)
+Time elapsed making text feature matrix:	00:00:10
+num_examples X, num_examples y: ((419132, 1364), (419132,))
+Time elapsed getting examples:	00:00:07
+
+---VALIDATION EXAMPLES---
+board_feature_matrix.shape: (20676, 364)
+Time elapsed making board feature matrix:	00:00:23
+text_feature_matrix.shape: (20676, 1000)
+Time elapsed making text feature matrix:	00:00:01
+num_examples X, num_examples y: ((41352, 1364), (41352,))
+Time elapsed getting examples:	00:00:00
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making board feature matrix:	00:01:44
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed making text feature matrix:	00:00:04
+num_examples X, num_examples y: ((182936, 1364), (182936,))
+Time elapsed getting examples:	00:00:03
+
+----------MANUAL GRID SEARCH----------
+
+---train---
+number of models: 4
+X_train.shape: (20000, 1364) 	 y_train.shape: (20000,)
+X_test.shape: (20000, 1364) 	 y_test.shape: (20000,)
+total_count: 2000.0
+current model, num_correct: 1024 total: 2000.0
+current model, num_correct: 1024 total: 2000.0
+current model, num_correct: 1024 total: 2000.0
+current model, num_correct: 1024 total: 2000.0
+end logistic regression..
+Time elapsed manually training (manual grid search) :	00:00:59
+
+---train accuracy scores---
+best_params: 
+(0, 0.001, 51.2)
+params: 
+[0.001, 0.01, 0.1, 1.0]
+accuracies: 
+51.2
+51.2
+51.2
+51.2
+Time elapsed doing manual grid search:	00:00:59
+
+---validation---
+number of models: 4
+X_train.shape: (20000, 1364) 	 y_train.shape: (20000,)
+X_test.shape: (20000, 1364) 	 y_test.shape: (20000,)
+total_count: 2000.0
+current model, num_correct: 1272 total: 2000.0
+current model, num_correct: 1263 total: 2000.0
+current model, num_correct: 1245 total: 2000.0
+current model, num_correct: 1120 total: 2000.0
+end logistic regression..
+Time elapsed manually training (manual grid search) :	00:00:58
+
+---val accuracy scores---
+best_params: 
+(0, 0.001, 63.6)
+params: 
+[0.001, 0.01, 0.1, 1.0]
+accuracies: 
+63.6
+63.15
+62.25
+56.0
+Time elapsed doing manual grid search:	00:00:58
+
+---Logistic Regression---
+len(choices_labels): 91468
+total_count: 18293.6
+Generating predictions for current group... percentage processed 54.663926181834086
+current model, num_correct: 10507 total: 18293.6
+Time elapsed in auto training:	00:00:30
+
+---Results Manual Grid search---
+train_best_params: (0, 0.001, 51.2)	[-inf, 51.2]
+val_best_parameters: (0, 0.001, 63.6)	[-inf, 63.6]
+test_overall_accuracy: 57.435387239253075
+len of indvl test accs: 91468
+0.0
+0.0
+0.0
+0.005466392618183409
+0.005466392618183409
+0.005466392618183409
+0.010932785236366817
+0.010932785236366817
+0.010932785236366817
+0.010932785236366817
+0.016399177854550227
+0.016399177854550227
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+
+----------AUTO GRID SEARCH----------
+
+---train---
+
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:01:43
+
+---validation---
+
+starting auto parameter search..
+end auto parameter search..
+Time elapsed in doing an automatic parameter search:	00:01:32
+
+---Logistic Regression---
+len(choices_labels): 91468
+total_count: 18293.6
+Generating predictions for current group... percentage processed 54.663926181834086
+current model, num_correct: 10507 total: 18293.6
+Time elapsed in auto training:	00:00:30
+
+---Results Auto Grid search---
+test best parameters: {'C': 0.1}
+val best parameters: {'C': 0.1}
+test_overall_accuracy: 57.435387239253075
+len of indvl accs: 91468
+0.0
+0.0
+0.0
+0.005466392618183409
+0.005466392618183409
+0.005466392618183409
+0.010932785236366817
+0.010932785236366817
+0.010932785236366817
+0.010932785236366817
+0.016399177854550227
+0.016399177854550227
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+0.021865570472733634
+Time elapsed in main:	00:12:59

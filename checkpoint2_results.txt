@@ -1,0 +1,146 @@
+Length of Full Dataset: Using a 10/90 positive to negative ratio
+
+
+---TRAIN EXAMPLES---
+board_feature_matrix.shape: (209566, 364)
+text_feature_matrix.shape: (209566, 1000)
+num_examples X, num_examples y: ((2095660, 1364), (2095660,))
+Time elapsed making board feature matrix:	00:04:14
+Time elapsed making text feature matrix:	00:00:10
+Time elapsed getting examples:	00:00:33
+
+---VALIDATION EXAMPLES---
+board_feature_matrix.shape: (20676, 364)
+text_feature_matrix.shape: (20676, 1000)
+num_examples X, num_examples y: ((206760, 1364), (206760,))
+Time elapsed making board feature matrix:	00:00:24
+Time elapsed making text feature matrix:	00:00:01
+Time elapsed getting examples:	00:00:02
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making text feature matrix:	00:00:04
+num_examples X, num_examples y: ((914680, 1364), (914680,))
+Time elapsed making board feature matrix:	00:01:47
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed getting examples:	00:00:11
+
+####################################################################################################################
+---argparser---:
+notes using argmin, max_features=100, max_iter=5000, 100 examples subset, 5 regularization values.
+params: 
+[0.001, 0.01, 0.1, 1.0]
+
+---MANUAL GRID SEARCH---
+
+---train accuracy scores---
+best_params: 
+(0, 0.001)
+accuracy: 
+4.5
+0
+0
+0
+best_params for manual_grid_search: (0, 0.001)
+
+---val accuracy scores---
+best_params: 
+(0, 0.001)
+accuracy: 
+2.0
+0
+0
+0
+best_params for manual_grid_search: (0, 0.001)
+
+---Results Manual Grid search---
+best parameters: (0, 0.001)
+overall_accuracy: 1.5
+
+---AUTOMATIC GRID SEARCH---
+
+---train---
+best params based off automatic GridSearchCV: {'C': 0.1}
+
+---validation---
+starting parameter search..
+best params based off automatic GridSearchCV: {'C': 0.001}
+
+---Results Auto Grid search---
+best parameters: {'C': 0.001}
+overall_accuracy: 1.5
+
+
+####################################################################################################################
+---argparser---:
+notes using argmax, max_features=1000, max_iter=5000, 20K examples subset, 5 regularization values.
+params: 
+[0.001, 0.01, 0.1, 1.0]
+
+---MANUAL GRID SEARCH---
+
+---train accuracy scores---
+best_params: 
+(3, 1.0)
+accuracies: 
+90.95
+93.15
+96.0
+99.15
+best_params for manual_grid_search: (3, 1.0)
+Time elapsed doing manual grid search:	00:00:47
+
+---val accuracy scores---
+best_params: 
+(0, 0.001)
+accuracies: 
+14.3
+11.4
+10.75
+7.7
+best_params for manual_grid_search: (0, 0.001)
+Time elapsed doing manual grid search:	00:00:51
+
+---Results Manual Grid search---
+best parameters: (0, 0.001)
+
+
+---AUTO GRID SEARCH---
+
+---train---
+best params based off automatic GridSearchCV: {'C': 0.01}
+
+---validation---
+best params based off automatic GridSearchCV: {'C': 0.1}
+
+---Results Auto Grid search---
+best parameters: {'C': 0.1}
+
+####################################################################################################################
+---argparser---:
+notes using argmax, 50/50 ratio, max_features=1000, max_iter=5000, 20K examples subset, 5 regularization values, using model.predict_proba(x) method.
+param search: 
+[0.001, 0.01, 0.1, 1.0]
+
+---MANUAL GRID SEARCH--- 
+
+---train accuracy scores---
+best_params: 
+(0, 0.001, 51.2)
+accuracies: 
+51.2
+51.2
+51.2
+51.2
+Time elapsed doing manual grid search:	00:01:09
+
+---val accuracy scores---
+best_params: 
+(0, 0.001, 61.25)
+accuracies: 
+61.25
+59.55
+57.2
+48.0
+Time elapsed doing manual grid search:	00:01:09
+

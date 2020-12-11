@@ -1,0 +1,332 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes Testing small 100 examples subset, extended values for regularization values to be tested. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+end_index 5 	 <class 'str'>
+DEBUG_flag False 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---TRAIN EXAMPLES---
+board_feature_matrix.shape: (209566, 364)
+Time elapsed making board feature matrix:	00:04:00
+text_feature_matrix.shape: (209566, 1000)
+Time elapsed making text feature matrix:	00:00:10
+num_examples X, num_examples y: ((2095660, 1364), (2095660,))
+Time elapsed getting examples:	00:00:32
+
+---VALIDATION EXAMPLES---
+board_feature_matrix.shape: (20676, 364)
+Time elapsed making board feature matrix:	00:00:23
+text_feature_matrix.shape: (20676, 1000)
+Time elapsed making text feature matrix:	00:00:01
+num_examples X, num_examples y: ((206760, 1364), (206760,))
+Time elapsed getting examples:	00:00:02
+
+---TEST EXAMPLES---
+board_feature_matrix.shape: (91468, 364)
+Time elapsed making board feature matrix:	00:01:39
+text_feature_matrix.shape: (91468, 1000)
+Time elapsed making text feature matrix:	00:00:04
+num_examples X, num_examples y: ((914680, 1364), (914680,))
+Time elapsed getting examples:	00:00:12
+
+----------MANUAL GRID SEARCH----------
+
+---train---
+number of models: 4
+X_train.shape: (100, 1364) 	 y_train.shape: (100,)
+X_test.shape: (100, 1364) 	 y_test.shape: (100,)
+
+incorrect prediction round 3 (y_pred,y_true): (4, 8)
+current probabilities: 
+[0.09896133 0.1015175  0.09942505 0.09902945 0.10156453 0.09964588
+ 0.09956461 0.09992583 0.10085888 0.09801824]
+
+incorrect prediction round 5 (y_pred,y_true): (0, 7)
+current probabilities: 
+[0.10078429 0.10016441 0.09992396 0.0999517  0.0992077  0.09990399
+ 0.09897412 0.09982212 0.1002893  0.1001015 ]
+
+incorrect prediction round 6 (y_pred,y_true): (9, 5)
+current probabilities: 
+[0.10013527 0.09994198 0.09885355 0.09925501 0.09969279 0.0995308
+ 0.09918397 0.1008279  0.10093021 0.10097141]
+
+incorrect prediction round 8 (y_pred,y_true): (3, 9)
+current probabilities: 
+[0.0996616  0.09811186 0.09870708 0.10158997 0.09998473 0.09896694
+ 0.09830269 0.10057412 0.09942068 0.10088877]
+end logistic regression..
+Time elapsed manually training (manual grid search) :	00:00:00
+
+---train accuracy scores---
+best_params: 
+(0, 0.001)
+params: 
+[0.001, 0.01, 0.1, 1.0]
+accuracies: 
+6.0
+6.0
+6.0
+6.0
+best_params for manual_grid_search: (0, 0.001)
+Time elapsed doing manual grid search:	00:00:00
+
+---validation---
+number of models: 4
+X_train.shape: (100, 1364) 	 y_train.shape: (100,)
+X_test.shape: (100, 1364) 	 y_test.shape: (100,)
+
+incorrect prediction round 0 (y_pred,y_true): (1, 3)
+current probabilities: 
+[0.10006384 0.10313284 0.09970348 0.10025553 0.09985318 0.09967692
+ 0.10039294 0.10000379 0.09992676 0.09960526]
+
+incorrect prediction round 2 (y_pred,y_true): (7, 2)
+current probabilities: 
+[0.09988009 0.10015172 0.10014907 0.1018217  0.10047154 0.10044674
+ 0.09943161 0.10241049 0.09978381 0.09979007]
+
+incorrect prediction round 4 (y_pred,y_true): (0, 3)
+current probabilities: 
+[0.10052781 0.09965848 0.0996763  0.10025553 0.09967657 0.10007081
+ 0.09969458 0.10017031 0.09970879 0.09961419]
+
+incorrect prediction round 6 (y_pred,y_true): (7, 3)
+current probabilities: 
+[0.10023175 0.10029289 0.09922842 0.10025553 0.10031908 0.09936897
+ 0.10079075 0.10129858 0.09956146 0.10018581]
+
+incorrect prediction round 7 (y_pred,y_true): (0, 7)
+current probabilities: 
+[0.10041555 0.09946621 0.10012696 0.10004664 0.10033872 0.09968133
+ 0.10013735 0.09956065 0.09980174 0.09958204]
+
+incorrect prediction round 8 (y_pred,y_true): (1, 9)
+current probabilities: 
+[0.10014289 0.10089439 0.09977932 0.09978822 0.09991118 0.09988615
+ 0.09979708 0.09986009 0.09974335 0.0999441 ]
+
+incorrect prediction round 9 (y_pred,y_true): (8, 4)
+current probabilities: 
+[0.10001239 0.09972097 0.10023418 0.09975551 0.1002931  0.09965692
+ 0.1000105  0.10014832 0.10109787 0.09972816]
+end logistic regression..
+Time elapsed manually training (manual grid search) :	00:00:00
+
+---val accuracy scores---
+best_params: 
+(0, 0.001)
+params: 
+[0.001, 0.01, 0.1, 1.0]
+accuracies: 
+3.0
+3.0
+3.0
+3.0
+best_params for manual_grid_search: (0, 0.001)
+Time elapsed doing manual grid search:	00:00:00
+logistic regression..
+main() X.shape: (100, 1364) 
+y.shape: (100,) 
+X_text.shape: (100, 1364) 
+y_test.shape: (100,) 
+best_params: (0, 0.001) 
+fname: data/test.choices.txt
+
+incorrect prediction (y_pred,y_true): (2, 7)
+current probabilities: 
+[0.09962196 0.09971883 0.09981464 0.09921308 0.09945282 0.09957244
+ 0.09936099 0.09947848 0.09961892 0.09863051]
+
+incorrect prediction (y_pred,y_true): (8, 2)
+current probabilities: 
+[0.0998049  0.09989461 0.10036151 0.10013143 0.10010202 0.09895225
+ 0.09963687 0.09951639 0.10061132 0.09854486]
+
+incorrect prediction (y_pred,y_true): (3, 9)
+current probabilities: 
+[0.09917798 0.09994438 0.09985226 0.10084934 0.09960452 0.10002039
+ 0.09966757 0.09869462 0.0997638  0.09923755]
+
+incorrect prediction (y_pred,y_true): (9, 0)
+current probabilities: 
+[0.09920082 0.10046383 0.09959251 0.09934957 0.09981464 0.09891196
+ 0.09949059 0.0997793  0.10052623 0.10069023]
+
+incorrect prediction (y_pred,y_true): (3, 4)
+current probabilities: 
+[0.09970347 0.09911708 0.09949927 0.10113489 0.09956085 0.09942771
+ 0.09932978 0.09962411 0.09954367 0.09970329]
+
+incorrect prediction (y_pred,y_true): (7, 5)
+current probabilities: 
+[0.09949099 0.10003799 0.09945653 0.09976715 0.09975806 0.09987014
+ 0.09981557 0.10027845 0.09966052 0.09983498]
+
+incorrect prediction (y_pred,y_true): (0, 1)
+current probabilities: 
+[0.10031587 0.09878259 0.10004551 0.09976478 0.09918056 0.09971943
+ 0.10002562 0.09981776 0.10014391 0.09991111]
+
+incorrect prediction (y_pred,y_true): (3, 2)
+current probabilities: 
+[0.10010367 0.09993558 0.10036151 0.10124069 0.09967145 0.09942301
+ 0.10022926 0.09931313 0.09976211 0.09980152]
+
+incorrect prediction (y_pred,y_true): (9, 1)
+current probabilities: 
+[0.09977362 0.09878259 0.09964991 0.09981776 0.09980877 0.09999532
+ 0.09970153 0.0996485  0.09956759 0.10037547]
+
+incorrect prediction (y_pred,y_true): (8, 2)
+current probabilities: 
+[0.10015443 0.09999904 0.10036151 0.10006234 0.09917663 0.10006766
+ 0.09966817 0.09960837 0.10098771 0.09981429]
+end logistic regression..
+Time elapsed training :	00:00:00
+
+---Results Manual Grid search---
+best parameters: (0, 0.001)
+overall_accuracy: 0.0
+len of indvl accs: 10
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+
+----------AUTO GRID SEARCH----------
+
+---train---
+
+starting parameter search..
+Line 309
+Line 311
+Line 313
+end parameter search..
+best params based off automatic GridSearchCV: {'C': 0.1}
+Time elapsed in doing an automatic parameter search:	00:00:00
+
+---validation---
+
+starting parameter search..
+Line 309
+Line 311
+Line 313
+end parameter search..
+best params based off automatic GridSearchCV: {'C': 0.1}
+Time elapsed in doing an automatic parameter search:	00:00:00
+logistic regression..
+main() X.shape: (100, 1364) 
+y.shape: (100,) 
+X_text.shape: (100, 1364) 
+y_test.shape: (100,) 
+best_params: {'C': 0.1} 
+fname: data/test.choices.txt
+
+incorrect prediction (y_pred,y_true): (2, 7)
+current probabilities: 
+[0.09962196 0.09971883 0.09981464 0.09921308 0.09945282 0.09957244
+ 0.09936099 0.09947848 0.09961892 0.09863051]
+
+incorrect prediction (y_pred,y_true): (8, 2)
+current probabilities: 
+[0.0998049  0.09989461 0.10036151 0.10013143 0.10010202 0.09895225
+ 0.09963687 0.09951639 0.10061132 0.09854486]
+
+incorrect prediction (y_pred,y_true): (3, 9)
+current probabilities: 
+[0.09917798 0.09994438 0.09985226 0.10084934 0.09960452 0.10002039
+ 0.09966757 0.09869462 0.0997638  0.09923755]
+
+incorrect prediction (y_pred,y_true): (9, 0)
+current probabilities: 
+[0.09920082 0.10046383 0.09959251 0.09934957 0.09981464 0.09891196
+ 0.09949059 0.0997793  0.10052623 0.10069023]
+
+incorrect prediction (y_pred,y_true): (3, 4)
+current probabilities: 
+[0.09970347 0.09911708 0.09949927 0.10113489 0.09956085 0.09942771
+ 0.09932978 0.09962411 0.09954367 0.09970329]
+
+incorrect prediction (y_pred,y_true): (7, 5)
+current probabilities: 
+[0.09949099 0.10003799 0.09945653 0.09976715 0.09975806 0.09987014
+ 0.09981557 0.10027845 0.09966052 0.09983498]
+
+incorrect prediction (y_pred,y_true): (0, 1)
+current probabilities: 
+[0.10031587 0.09878259 0.10004551 0.09976478 0.09918056 0.09971943
+ 0.10002562 0.09981776 0.10014391 0.09991111]
+
+incorrect prediction (y_pred,y_true): (3, 2)
+current probabilities: 
+[0.10010367 0.09993558 0.10036151 0.10124069 0.09967145 0.09942301
+ 0.10022926 0.09931313 0.09976211 0.09980152]
+
+incorrect prediction (y_pred,y_true): (9, 1)
+current probabilities: 
+[0.09977362 0.09878259 0.09964991 0.09981776 0.09980877 0.09999532
+ 0.09970153 0.0996485  0.09956759 0.10037547]
+
+incorrect prediction (y_pred,y_true): (8, 2)
+current probabilities: 
+[0.10015443 0.09999904 0.10036151 0.10006234 0.09917663 0.10006766
+ 0.09966817 0.09960837 0.10098771 0.09981429]
+end logistic regression..
+Time elapsed training :	00:00:00
+
+---Results Auto Grid search---
+best parameters: {'C': 0.1}
+overall_accuracy: 0.0
+len of indvl accs: 10
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+Time elapsed in main:	00:07:26

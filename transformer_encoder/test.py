@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time 
-from model import *
+from pretrained_combine import *
 from transformer_encoder.data_process import *
 import os
 import pickle
@@ -39,7 +39,7 @@ print(test_comments.shape)
 batch_size = 64
 ntokens = vocab_size # the size of vocabulary
 emsize = 200 # embedding dimension
-nhid = 100 # the dimension of the feedforward network model in nn.TransformerEncoder
+nhid = 100 # the dimension of the feedforward network pretrained_combine in nn.TransformerEncoder
 nlayers = 2 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
 nhead = 2 # the number of heads in the multiheadattention models
 dropout = 0.2 # the dropout value
@@ -67,7 +67,7 @@ def train(train_comments):
     features, output = model(data, src_mask)
     loss = criterion(output.view(-1, ntokens), targets.reshape(-1))
     loss.backward()
-    #torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+    #torch.nn.utils.clip_grad_norm_(pretrained_combine.parameters(), 0.5)
     optimizer.step()
 
     total_loss += loss.item()
@@ -116,9 +116,9 @@ epochs = 10 # The number of epochs
 best_model = None
 save_path = "transformer_encoder/model_weights"
 
-#model.load_state_dict(torch.load(save_path).state_dict())
+#pretrained_combine.load_state_dict(torch.load(save_path).state_dict())
 model.load_state_dict(torch.load(save_path,map_location=lambda storage, loc: storage))
-#model.load_state_dict(torch.load(save_path))
+#pretrained_combine.load_state_dict(torch.load(save_path))
 save_batch = 2240
 
 #---------------------------training set start-------------------------------------
@@ -127,7 +127,7 @@ print("training set:")
 os.system("mkdir train_batch_feature")
 
 for count, i in enumerate(range(0, train_comments.size(0), save_batch)):
-  train_loss, whole_feature = evaluate(model, train_comments[i:i+save_batch])
+  train_loss, whole_feature = evaluate(pretrained_combine, train_comments[i:i+save_batch])
   temp_labels = train_labels[i:i+save_batch]
   d = {"features":[],"labels":[]}
   for j in range(0,len(whole_feature),2):
@@ -146,7 +146,7 @@ print("test set:")
 os.system("mkdir test_batch_feature")
 
 for count, i in enumerate(range(0, test_comments.size(0), save_batch)):
-  test_loss, whole_feature = evaluate(model, test_comments[i:i+save_batch])
+  test_loss, whole_feature = evaluate(pretrained_combine, test_comments[i:i+save_batch])
   temp_labels = test_labels[i:i+save_batch]
   d = {"features":[],"labels":[]}
   for j in range(0,len(whole_feature),2):

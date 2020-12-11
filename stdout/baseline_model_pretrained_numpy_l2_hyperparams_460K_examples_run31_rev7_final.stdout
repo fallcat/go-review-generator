@@ -1,0 +1,102 @@
+[nltk_data] Downloading package stopwords to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!
+[nltk_data] Downloading package punkt to
+[nltk_data]     /home1/i/irebecca/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+
+---argparser---:
+notes script: baseline_model_pretrained_numpy.py, predict_prob(a), l2 best parameters found, on nlpgpu07, all examples. 	 <class 'str'>
+outDir out/ 	 <class 'str'>
+dataDir data/ 	 <class 'str'>
+
+---train fnames---
+len: 6
+data/train.choices.pkl
+data/train.choices.txt
+data/train.pkl
+data/train_comments.tok.32000.txt
+data/train_comments.tok.txt
+data/train_comments.txt
+
+---val fnames---
+len: 6
+data/val.choices.pkl
+data/val.choices.txt
+data/val.pkl
+data/val_comments.tok.32000.txt
+data/val_comments.tok.txt
+data/val_comments.txt
+
+---test fnames---
+len: 6
+data/test.choices.pkl
+data/test.choices.txt
+data/test.pkl
+data/test_comments.tok.32000.txt
+data/test_comments.tok.txt
+data/test_comments.txt
+
+---vocab fnames---
+len: 1
+data/vocab.32000
+
+
+WARNING:tensorflow:From ./katago/model.py:1135: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.where in 2.0, which has the same broadcast rule as np.where
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained_numpy.py:346: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+WARNING:tensorflow:From logistic_regression/baseline_model_pretrained_numpy.py:353: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+
+---Logistic Regression In Progress---
+(460484, 461)
+(460484,)
+(182936, 461)
+(182936,)
+starting main with best parameters..
+best parameters found: 
+
+{'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}
+
+
+type(temp): <class 'numpy.ndarray'>
+temp[:100]: [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1.]
+
+
+
+[1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.
+ 1. 1. 1. 1.]
+
+
+
+y_pred.shape:  (182936,)
+
+---Confusion Matrix---
+
+---Classification Report---
+              precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00     91468
+           1       0.50      1.00      0.67     91468
+
+    accuracy                           0.50    182936
+   macro avg       0.25      0.50      0.33    182936
+weighted avg       0.25      0.50      0.33    182936
+
+end main with best parameters..
+Time elapsed running main with best parameters only:	00:00:30
+
+test_accuracy: 0.5
+
+---Results---
+*test*	best_model: {'C': 10, 'penalty': 'l2', 'solver': 'liblinear'}	accuracy: 0.5
+Time elapsed in main:	00:00:32
